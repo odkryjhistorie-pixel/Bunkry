@@ -80,22 +80,72 @@ const overlays={'Szybki LiDAR: Esri Hillshade':esriHS,'Dokładny LiDAR: GUGiK NM
 const groupP=L.featureGroup().addTo(map), groupHelp=L.featureGroup().addTo(map), groupLines=L.featureGroup().addTo(map), groupGrid=L.featureGroup();
 function color(s){return s>=5?'#7f1d1d':s>=4?'#b45309':s>=3?'#0369a1':'#4b5563'}
 const pts=[
- {id:'A01',n:'Południowa krawędź przeprawy — bermy i ostre równoległe linie',lat:50.0346042,lon:19.1121551,score:5,why:'Najmocniejsza kombinacja: skarpa, równoległa krawędź, pozycja strzegąca mostu. Szukaj cegły, betonu, wylotu wentylacji, nienaturalnego pagórka.',type:'schron/stanowisko'},
- {id:'A02',n:'Owalny pagórek na południowym brzegu',lat:50.0343886,lon:19.1146025,score:5,why:'Forma punktowa na tarasie zalewowym, dobry sektor obserwacji wzdłuż rzeki. Najpierw zdjęcia z czterech stron i obejście po obwodzie.',type:'schron maskowany'},
- {id:'A03',n:'Prostokąt + krótka grobla/dojście',lat:50.0338227,lon:19.1151619,score:4,why:'Geometryczny układ mniej naturalny niż koryta rzeczne. Może być konstrukcja gospodarcza, ale wymaga sprawdzenia.',type:'obiekt prostokątny'},
- {id:'A04',n:'Północny brzeg naprzeciw A02',lat:50.0353229,lon:19.1158612,score:4,why:'Logiczne miejsce pozycji krzyżowej po drugiej stronie Pszczynki. Sprawdź krawędź pod linią drzew.',type:'pozycja flankująca'},
- {id:'A05',n:'Trójkątny nasyp przy północnej drodze',lat:50.0354397,lon:19.1106866,score:3,why:'Forma może być drogowa, ale leży przy osi dojścia do przeprawy. Sprawdzić narożniki i nienaturalną cegłę.',type:'nasyp/stanowisko'},
- {id:'A06',n:'Wschodni odcinek południowej skarpy',lat:50.0346042,lon:19.1167003,score:3,why:'Kontynuacja linii ostrych krawędzi; miejsce może być przykryte roślinnością.',type:'skarpa/krawędź'},
- {id:'A07',n:'Pinezka Stary most — przyczółki i narzut',lat:50.0349456,lon:19.1132739,score:3,why:'Punkt odniesienia. Sprawdzić okolice przyczółka, ławy, cegły wtórnie użyte i stare drogi dojściowe.',type:'przeprawa'},
- {id:'A08',n:'Łukowaty wał SW',lat:50.0341192,lon:19.1096377,score:2,why:'Prawdopodobnie dawne koryto/brzeg, ale ostre fragmenty łuku warto sfotografować.',type:'wał/koryto'},
- {id:'A09',n:'Południowy liniowy nasyp/droga',lat:50.0329873,lon:19.1141130,score:2,why:'Raczej infrastruktura, lecz może wskazywać dawną logistykę lub dojście do pozycji.',type:'droga/nasyp'},
- {id:'A10',n:'Mikroanomalia centralna — jasny kopczyk na łące',lat:50.034245,lon:19.113770,score:3,why:'Mała punktowa forma widoczna na zrzutach jako nierówność w polu zalewowym. Priorytet po A01–A04.',type:'mikrorelief'},
- {id:'A11',n:'Węzeł śladów polnych na południe od rzeki',lat:50.033970,lon:19.112880,score:3,why:'Krzyżowanie starych dojazdów i skarp. Szukaj zagłębień oraz cegły pod darnią.',type:'dojście/zagłębienie'},
- {id:'A12',n:'Wschodni brzeg — zakończenie ostrej krawędzi',lat:50.034980,lon:19.117620,score:3,why:'Końcówka linii krawędziowej; potencjalne miejsce maskowania stanowiska skrajnego.',type:'krawędź'},
- {id:'A13',n:'Północny meander — półka nad rzeką',lat:50.035760,lon:19.113950,score:3,why:'Półka nad zakolem mogła dawać obserwację przeprawy. Uwaga na mylenie z naturalnym podcięciem brzegu.',type:'punkt obserwacyjny'},
- {id:'A14',n:'Zachodni wlot do przeprawy',lat:50.034730,lon:19.111250,score:4,why:'Pozycja na osi dojścia od zachodu, blisko linii skarpy. Dobry kandydat do sprawdzenia w pierwszej pętli.',type:'sektor zachodni'}
+ {id:'A01',n:'Południowa krawędź przeprawy — bermy i ostre równoległe linie',lat:50.0346042,lon:19.1121551,score:5,type:'schron/stanowisko',
+  why:'Punkt został wyznaczony, bo łączy najmocniejszy sygnał terenowy z logiką obrony przeprawy.',
+  evidence:['LiDAR: równoległa, ostra krawędź/berma przy południowej skarpie, mniej naturalna niż miękkie formy meandru.','Taktyka: miejsce kontroluje dojście do starego mostu i oś wzdłuż Pszczynki.','Hipsometria: leży na przejściu tarasu/skarpy, czyli tam gdzie schron mógł być zakopany i maskowany.'],
+  check:['Obejść krawędź od strony rzeki i łąki.','Szukać cegły, betonu, nienaturalnego kopca, zapadliska, otworu wentylacyjnego lub zmiany roślinności.','Zrobić zdjęcia wzdłuż linii skarpy, nie tylko punktu.']},
+ {id:'A02',n:'Owalny pagórek na południowym brzegu',lat:50.0343886,lon:19.1146025,score:5,type:'schron maskowany',
+  why:'Wybrany jako kandydat punktowy, bo wygląda jak lokalna, zamknięta anomalia na tle większych naturalnych form doliny.',
+  evidence:['LiDAR: mała forma wypukła/owalna przy krawędzi tarasu.','Taktyka: daje sektor obserwacji/ognia wzdłuż rzeki i w stronę przeprawy.','Kontekst: pasuje do małego schronu ziemno-ceglanego przykrytego darnią.'],
+  check:['Obejść pełny obwód pagórka.','Sprawdzić czy forma ma regularny strop, narożnik, zapadnięcie albo gruz ceglany.','Porównać z naturalnymi kępami i wykrotami w pobliżu.']},
+ {id:'A03',n:'Prostokąt + krótka grobla/dojście',lat:50.0338227,lon:19.1151619,score:4,type:'obiekt prostokątny',
+  why:'Wyznaczony przez geometrię: prostokątne i prostopadłe układy są mniej typowe dla naturalnej doliny rzecznej.',
+  evidence:['LiDAR: widoczny ślad prostokątny oraz krótka linia dojściowa/grobla.','Taktyka: położenie za południową krawędzią mogło służyć jako zaplecze, stanowisko lub ukrycie.','Ryzyko błędu: może to być element rolniczy albo melioracyjny, dlatego priorytet 4, nie 5.'],
+  check:['Szukaj prostych narożników, cegieł i regularnych krawędzi.','Sprawdź, czy dojście prowadzi logicznie do rzeki lub starej drogi.','Zanotuj materiał: ziemia, kamień, cegła, beton.']},
+ {id:'A04',n:'Północny brzeg naprzeciw A02',lat:50.0353229,lon:19.1158612,score:4,type:'pozycja flankująca',
+  why:'Punkt wynika z analizy krzyżowej: jeżeli broniono przeprawy, sensowne są pozycje na obu brzegach.',
+  evidence:['LiDAR: podłużna krawędź równoległa do rzeki.','Taktyka: możliwy sektor flankujący naprzeciw A02 i A03.','Teren: linia drzew może maskować obiekt niewidoczny na zwykłej satelicie.'],
+  check:['Sprawdzić skraj linii drzew i półkę nad rzeką.','Szukać małych zapadlisk po stropie lub wejściu.','Uważać na naturalne podcięcie brzegu.']},
+ {id:'A05',n:'Trójkątny nasyp przy północnej drodze',lat:50.0354397,lon:19.1106866,score:3,type:'nasyp/stanowisko',
+  why:'Zaznaczony jako kontrola, bo forma leży przy osi dojścia do przeprawy, ale może być zwykłym efektem robót drogowych.',
+  evidence:['LiDAR: trójkątna forma ziemna przy skrzyżowaniu śladów.','Taktyka: dobre miejsce kontroli drogi dojściowej od zachodu/północy.','Niepewność: geometria może pochodzić z prac drogowych.'],
+  check:['Sprawdzić czy są cegły/beton zamiast samego nasypu.','Zobaczyć, czy forma ma wnękę lub zapadlisko.','Porównać z poboczem drogi.']},
+ {id:'A06',n:'Wschodni odcinek południowej skarpy',lat:50.0346042,lon:19.1167003,score:3,type:'skarpa/krawędź',
+  why:'Wyznaczony jako kontynuacja podejrzanej linii krawędziowej po południowej stronie rzeki.',
+  evidence:['LiDAR: ciągłość ostrej krawędzi i lokalne zgrubienia.','Taktyka: mógł domykać sektor wschodni.','Niepewność: wiele form może być erozją brzegu.'],
+  check:['Przejść wzdłuż skarpy, nie tylko do punktu.','Szukać fragmentów regularnych, prostych lub punktowych kopców.','Dokumentować miejsca z cegłą i metalem.']},
+ {id:'A07',n:'Pinezka Stary most — przyczółki i narzut',lat:50.0349456,lon:19.1132739,score:3,type:'przeprawa',
+  why:'To punkt odniesienia, bo schrony przy przeprawach zwykle ustawiano tak, aby kontrolowały most, przyczółki i drogi dojścia.',
+  evidence:['Historia terenu: lokalna nazwa i wskazanie starego mostu.','Taktyka: przeprawa jest naturalnym celem obrony.','LiDAR/satelita: widoczne drogi i krawędzie związane z dawnym przejściem.'],
+  check:['Sprawdzić przyczółki, skarpy, narzut kamienny i wtórnie użyte cegły.','Sfotografować dojścia po obu stronach.','Nie rozbierać ani nie ruszać elementów mostu.']},
+ {id:'A08',n:'Łukowaty wał SW',lat:50.0341192,lon:19.1096377,score:2,type:'wał/koryto',
+  why:'Punkt pomocniczy: forma może być dawnym korytem, ale ostre fragmenty łuku mogą ukrywać ingerencję człowieka.',
+  evidence:['LiDAR: łukowaty wał/krawędź na tarasie.','Hydrologia: pasuje do starego brzegu lub starorzecza.','Niepewność: bardziej naturalne niż militarne.'],
+  check:['Sprawdzać tylko ostre narożniki i nietypowe zgrubienia.','Odróżnić naturalny brzeg od ceglanego/gruzowego nasypu.']},
+ {id:'A09',n:'Południowy liniowy nasyp/droga',lat:50.0329873,lon:19.1141130,score:2,type:'droga/nasyp',
+  why:'Zaznaczony jako kontekst logistyczny, nie jako główny kandydat na schron.',
+  evidence:['LiDAR: długi liniowy nasyp.','Kontekst: może wskazywać dawną drogę dojścia lub zaplecze.','Niepewność: najpewniej infrastruktura, nie schron.'],
+  check:['Użyć jako trasy orientacyjnej.','Sprawdzać odgałęzienia i miejsca, gdzie linia dochodzi do skarpy.']},
+ {id:'A10',n:'Mikroanomalia centralna — jasny kopczyk na łące',lat:50.034245,lon:19.113770,score:3,type:'mikrorelief',
+  why:'Wyznaczony jako mała, punktowa nierówność w polu zalewowym, widoczna na zrzutach jako odmienny mikrorelief.',
+  evidence:['LiDAR: lokalny kopczyk/zgrubienie wśród bardziej płaskiej łąki.','Taktyka: leży między przeprawą a południową linią skarpy.','Niepewność: może być kępa roślinności lub naturalny osad.'],
+  check:['Zrobić zdjęcie nisko z boku, żeby pokazać profil.','Sprawdzić czy występuje gruz lub zapadnięcie na szczycie.']},
+ {id:'A11',n:'Węzeł śladów polnych na południe od rzeki',lat:50.033970,lon:19.112880,score:3,type:'dojście/zagłębienie',
+  why:'Punkt powstał z analizy komunikacji: stare drogi i dojścia często prowadzą do stanowisk lub obiektów maskowanych.',
+  evidence:['LiDAR: krzyżowanie kilku śladów terenowych.','Taktyka: położenie za główną linią krawędzi mogło służyć jako dojście lub zaplecze.','Niepewność: może być zwykły układ rolniczy.'],
+  check:['Iść śladami dróg i szukać ich zakończeń.','Zwracać uwagę na małe zagłębienia przy skrzyżowaniu.']},
+ {id:'A12',n:'Wschodni brzeg — zakończenie ostrej krawędzi',lat:50.034980,lon:19.117620,score:3,type:'krawędź',
+  why:'Wyznaczony, bo końce wałów i krawędzi są typowymi miejscami maskowania małych stanowisk.',
+  evidence:['LiDAR: zakończenie linii krawędziowej.','Taktyka: skrajny punkt sektora wschodniego.','Niepewność: możliwa erozja i regulacja brzegu.'],
+  check:['Sprawdzić samo zakończenie krawędzi i najbliższe 20 m.','Szukać regularnego kopca, cegły lub zapadliska.']},
+ {id:'A13',n:'Północny meander — półka nad rzeką',lat:50.035760,lon:19.113950,score:3,type:'punkt obserwacyjny',
+  why:'Zaznaczony jako potencjalny punkt obserwacyjny nad zakolem, skąd można kontrolować ruch przy przeprawie.',
+  evidence:['Geomorfologia: półka nad meandrem.','Taktyka: dobra widoczność na oś rzeki i dojście do mostu.','Niepewność: naturalne podcięcie brzegu może wyglądać jak stanowisko.'],
+  check:['Ocenić widoczność na przeprawę.','Szukaj śladów sztucznego wyrównania lub cegły.']},
+ {id:'A14',n:'Zachodni wlot do przeprawy',lat:50.034730,lon:19.111250,score:4,type:'sektor zachodni',
+  why:'Wyznaczony, bo zachodni wlot do przeprawy jest logicznym miejscem blokowania dojścia do mostu.',
+  evidence:['LiDAR: bliskość linii skarpy i dojścia.','Taktyka: kontrola ruchu od zachodu; możliwa pierwsza pozycja obronna.','Kontekst: współgra z A01 i A05 jako układ osłony dojścia.'],
+  check:['Sprawdzić oba boki dawnego dojścia.','Szukać małej ceglanej konstrukcji zakrytej ziemią lub płaskiego zapadliska.']}
 ];
-function popup(p){return `<div class="pop"><h3>${p.id} — ${p.n}</h3><p><span class="risk r${p.score}">priorytet ${p.score}/5</span> · ${p.type}</p><p><b>WGS84:</b> <code>${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}</code></p><p>${p.why}</p><p><b>Procedura:</b> zdjęcie szerokie, zdjęcie detalu, waypoint GPS, opis roślinności/gruzu. Bez kopania.</p><p><button onclick="copyText('${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}')">Kopiuj współrzędne</button></p></div>`}
+function list(items){return '<ul>'+items.map(x=>`<li>${x}</li>`).join('')+'</ul>'}
+function popup(p){return `<div class="pop"><h3>${p.id} — ${p.n}</h3>
+<p><span class="risk r${p.score}">priorytet ${p.score}/5</span> · ${p.type}</p>
+<p><b>WGS84:</b> <code>${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}</code></p>
+<p><b>Dlaczego ten punkt?</b><br>${p.why}</p>
+<p><b>Przesłanki z analizy:</b>${list(p.evidence||[])}</p>
+<p><b>Co sprawdzić w terenie:</b>${list(p.check||[])}</p>
+<p><b>Procedura:</b> zdjęcie szerokie, zdjęcie detalu, waypoint GPS, opis roślinności/gruzu. Bez kopania.</p>
+<p><button onclick="copyText('${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}')">Kopiuj współrzędne</button></p></div>`}
 pts.forEach(p=>{
  const m=L.circleMarker([p.lat,p.lon],{radius:p.score>=5?10:p.score>=4?9:7,color:'#fff',weight:1.5,fillColor:color(p.score),fillOpacity:.95}).bindPopup(popup(p)).bindTooltip(`${p.id}: ${p.n}`);
  const c=L.circle([p.lat,p.lon],{radius:p.score>=4?22:14,color:color(p.score),weight:1,fillColor:color(p.score),fillOpacity:.13});
