@@ -1,755 +1,124 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="pl">
 <head>
-    
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
-    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
-    
-            <meta name="viewport" content="width=device-width,
-                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-            <style>
-                #map_e4b3e4387dc9165c731eb21f3195ec04 {
-                    position: relative;
-                    width: 100.0%;
-                    height: 100.0%;
-                    left: 0.0%;
-                    top: 0.0%;
-                }
-                .leaflet-container { font-size: 1rem; }
-            </style>
-
-            <style>html, body {
-                width: 100%;
-                height: 100%;
-                margin: 0;
-                padding: 0;
-            }
-            </style>
-
-            <style>#map {
-                position:absolute;
-                top:0;
-                bottom:0;
-                right:0;
-                left:0;
-                }
-            </style>
-
-            <script>
-                L_NO_TOUCH = false;
-                L_DISABLE_3D = false;
-            </script>
-
-        
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Bunkry Bojszowy — analiza LiDAR / teren / historia</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  html, body, #map { height:100%; margin:0; background:#111; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+  .panel { position: fixed; z-index: 900; background: rgba(12,14,18,.92); color:#f2f2f2; border:1px solid rgba(255,255,255,.16); box-shadow:0 8px 28px rgba(0,0,0,.35); backdrop-filter: blur(8px); }
+  #topbar { left:10px; right:10px; top:10px; padding:10px 12px; border-radius:14px; display:flex; gap:10px; align-items:center; justify-content:space-between; }
+  #topbar h1 { font-size:15px; margin:0; line-height:1.15; letter-spacing:.2px; }
+  #topbar small { display:block; color:#b8c0cc; font-weight:500; margin-top:2px; }
+  #side { left:10px; bottom:10px; width:370px; max-width:calc(100vw - 20px); max-height:48vh; overflow:auto; border-radius:14px; padding:12px; }
+  #side h2 { font-size:14px; margin:0 0 8px; }
+  #side p, #side li { font-size:12px; line-height:1.35; color:#e5e7eb; }
+  #side ul { padding-left:18px; margin:8px 0; }
+  .btn { border:1px solid rgba(255,255,255,.18); color:white; background:#242933; border-radius:10px; padding:8px 10px; font-weight:700; font-size:12px; cursor:pointer; }
+  .btn:active { transform:translateY(1px); }
+  .risk { display:inline-block; padding:2px 7px; border-radius:999px; color:#fff; font-weight:800; font-size:11px; }
+  .r5 { background:#7f1d1d; } .r4 { background:#b45309; } .r3 { background:#0369a1; } .r2 { background:#4b5563; }
+  .legend { position:fixed; right:10px; bottom:18px; z-index:850; max-width:260px; border-radius:14px; padding:10px 12px; }
+  .legend div { font-size:12px; margin:4px 0; color:#e5e7eb; }
+  .dot { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:6px; vertical-align:-1px; }
+  .leaflet-control-layers { background:rgba(12,14,18,.92)!important; color:white!important; border-radius:12px!important; border:1px solid rgba(255,255,255,.15)!important; }
+  .leaflet-control-layers label { font-size:12px; }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background:#0f131a; color:#f8fafc; }
+  .leaflet-popup-content { margin:12px; min-width:250px; }
+  .pop h3 { margin:0 0 6px; font-size:16px; } .pop p { margin:6px 0; font-size:12px; line-height:1.35; } .pop code { color:#bae6fd; }
+  .leaflet-container.crosshair-cursor { cursor:crosshair; }
+  input[type=range] { width:145px; vertical-align:middle; }
+  .opacityBox { font-size:12px; color:#dbeafe; margin-top:6px; }
+  @media (max-width: 640px) { #topbar { top:6px; left:6px; right:6px; padding:9px; } #topbar h1{font-size:13px} #side { display:none; } .legend{display:none;} .leaflet-control-layers{max-height:58vh; overflow:auto;} }
+</style>
 </head>
 <body>
-    
-    
-<div style="position: fixed; bottom: 24px; left: 24px; width: 360px; z-index: 9999; background: white; padding: 12px; border: 2px solid #555; border-radius: 8px; font-size: 13px; box-shadow: 0 2px 12px rgba(0,0,0,.25);">
-<b>Analiza wstępna — Bojszowy, Pszczynka / Stary most</b><br>
-Punkty są interpretacją z dostarczonych zrzutów LiDAR/hipsometria i logicznego układu obrony przeprawy. Nie są potwierdzeniem istnienia bunkrów.<br>
-Włącz/wyłącz warstwy: satelita, NMT cieniowanie, hipsometria. Najpierw sprawdzaj P2–P4, potem P5/P7/P8.<br>
-<b>Zakaz:</b> kopania, naruszania obiektu i wchodzenia na cudzy teren bez zgody.
+<div id="map"></div>
+<div id="topbar" class="panel">
+  <div><h1>Bunkry Bojszowy — mapa prospekcyjna AI/LiDAR <small>Stary most / Pszczynka · wersja terenowa 2.0</small></h1></div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+    <button class="btn" onclick="downloadGeoJSON()">GeoJSON</button>
+    <button class="btn" onclick="downloadGPX()">GPX</button>
+    <button class="btn" onclick="downloadKML()">KML</button>
+    <button class="btn" onclick="toggleSide()">Metoda</button>
+  </div>
 </div>
-    
-            <div class="folium-map" id="map_e4b3e4387dc9165c731eb21f3195ec04" ></div>
-        
-</body>
+<div id="side" class="panel">
+  <h2>Model detekcji — jak czytać mapę</h2>
+  <p>To jest mapa prospekcyjna: łączy logikę pola walki, LiDAR/NMT, hipsometrię, hydrologię, krawędzie tarasu zalewowego, ślady dawnych dróg i miejsca z dobrym polem ostrzału. Punkty nie są potwierdzeniem obiektu.</p>
+  <ul>
+    <li><b>Priorytet 5–4:</b> anomalia geometryczna + sens taktyczny + bliskość przeprawy/skarp.</li>
+    <li><b>Priorytet 3:</b> forma podejrzana, ale możliwe pochodzenie naturalne lub rolnicze.</li>
+    <li><b>Priorytet 2:</b> kontrola pomocnicza, ślad drogi, wału lub naturalnej krawędzi.</li>
+  </ul>
+  <div class="opacityBox">Geoportal LiDAR: <input id="opLidar" type="range" min="0" max="1" step="0.05" value="0.70"></div>
+  <div class="opacityBox">Hipsometria: <input id="opHypso" type="range" min="0" max="1" step="0.05" value="0.35"></div>
+  <div class="opacityBox">Esri Hillshade: <input id="opEsriHS" type="range" min="0" max="1" step="0.05" value="0.65"></div>
+  <p><b>Bezpieczeństwo:</b> rób tylko oględziny, zdjęcia i GPS. Bez kopania, bez naruszania gruntu, bez wejścia na teren prywatny bez zgody.</p>
+</div>
+<div class="legend panel">
+  <div><span class="dot" style="background:#7f1d1d"></span>5 — najwyższy priorytet</div>
+  <div><span class="dot" style="background:#b45309"></span>4 — wysoki priorytet</div>
+  <div><span class="dot" style="background:#0369a1"></span>3 — średni priorytet</div>
+  <div><span class="dot" style="background:#4b5563"></span>2 — pomocnicze</div>
+</div>
 <script>
-    
-    
-            var map_e4b3e4387dc9165c731eb21f3195ec04 = L.map(
-                "map_e4b3e4387dc9165c731eb21f3195ec04",
-                {
-                    center: [50.0349456, 19.1132739],
-                    crs: L.CRS.EPSG3857,
-                    ...{
-  "zoom": 17,
-  "zoomControl": true,
-  "preferCanvas": false,
-}
-
-                }
-            );
-            L.control.scale().addTo(map_e4b3e4387dc9165c731eb21f3195ec04);
-
-            
-
-        
-    
-            var tile_layer_697d75421512275bf49453b239fd0057 = L.tileLayer(
-                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                {
-  "minZoom": 0,
-  "maxZoom": 19,
-  "maxNativeZoom": 19,
-  "noWrap": false,
-  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
-  "subdomains": "abc",
-  "detectRetina": false,
-  "tms": false,
-  "opacity": 1,
-}
-
-            );
-        
-    
-            tile_layer_697d75421512275bf49453b239fd0057.addTo(map_e4b3e4387dc9165c731eb21f3195ec04);
-        
-    
-            var tile_layer_286a99788c8d3385932aa7b77027519a = L.tileLayer(
-                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-                {
-  "minZoom": 0,
-  "maxZoom": 18,
-  "maxNativeZoom": 18,
-  "noWrap": false,
-  "attribution": "Esri, Maxar, Earthstar Geographics",
-  "subdomains": "abc",
-  "detectRetina": false,
-  "tms": false,
-  "opacity": 1,
-}
-
-            );
-        
-    
-            tile_layer_286a99788c8d3385932aa7b77027519a.addTo(map_e4b3e4387dc9165c731eb21f3195ec04);
-        
-    
-            var macro_element_7ccaa54fa7877b3e8df5f2830910e4cb = L.tileLayer.wms(
-                "https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/ShadedRelief",
-                {"attribution": "", "format": "image/png", "layers": "Raster", "opacity": 0.75, "styles": "", "transparent": true, "version": "1.1.1"}
-            );
-        
-    
-            macro_element_7ccaa54fa7877b3e8df5f2830910e4cb.addTo(map_e4b3e4387dc9165c731eb21f3195ec04);
-        
-    
-            var macro_element_0dfe6b2c99834198e0267244029cf07a = L.tileLayer.wms(
-                "https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/Hypsometry",
-                {"attribution": "", "format": "image/png", "layers": "ISOK_HipsoDyn", "opacity": 0.55, "styles": "", "transparent": true, "version": "1.1.1"}
-            );
-        
-    
-            macro_element_0dfe6b2c99834198e0267244029cf07a.addTo(map_e4b3e4387dc9165c731eb21f3195ec04);
-        
-    
-            var circle_891005a40c9cba7442a4a428b2fd5f21 = L.circle(
-                [50.0349456, 19.1132739],
-                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": false, "fillColor": "blue", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 450, "stroke": true, "weight": 2}
-            ).addTo(map_e4b3e4387dc9165c731eb21f3195ec04);
-        
-    
-            circle_891005a40c9cba7442a4a428b2fd5f21.bindTooltip(
-                `<div>
-                     Obszar analizy ok. 450 m od pinezki
-                 </div>`,
-                {
-  "sticky": true,
-}
-            );
-        
-    
-            var marker_f414e07c1d8fa33c49647cc726c4f47c = L.marker(
-                [50.0349456, 19.1132739],
-                {
-}
-            ).addTo(map_e4b3e4387dc9165c731eb21f3195ec04);
-        
-    
-            var icon_363407d573a108450ad9c0ad6f17ece1 = L.AwesomeMarkers.icon(
-                {
-  "markerColor": "red",
-  "iconColor": "white",
-  "icon": "flag",
-  "prefix": "glyphicon",
-  "extraClasses": "fa-rotate-0",
-}
-            );
-        
-    
-        var popup_09b881978ac898c8ca0ec0cf6bdb2fe0 = L.popup({
-  "maxWidth": "100%",
+const center=[50.0349456,19.1132739];
+const map=L.map('map',{center:center,zoom:17,preferCanvas:true,zoomControl:true});
+map.attributionControl.setPrefix('');
+L.control.scale({imperial:false}).addTo(map);
+const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+const esriImg=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:18,attribution:'Esri World Imagery'}).addTo(map);
+const esriHS=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:16,opacity:.65,attribution:'Esri World Hillshade'}).addTo(map);
+const gugikShade=L.tileLayer.wms('https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/ShadedRelief',{layers:'Raster',format:'image/png',transparent:true,version:'1.1.1',opacity:.70,attribution:'GUGiK NMT 1 m — cieniowanie'}).addTo(map);
+const gugikHypso=L.tileLayer.wms('https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/Hypsometry',{layers:'ISOK_HipsoDyn',format:'image/png',transparent:true,version:'1.1.1',opacity:.35,attribution:'GUGiK NMT — hipsometria'});
+const topo=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'OpenTopoMap'});
+const base={'Esri satelita':esriImg,'OpenStreetMap':osm,'OpenTopoMap':topo};
+const overlays={'Szybki LiDAR: Esri Hillshade':esriHS,'Dokładny LiDAR: GUGiK NMT 1 m':gugikShade,'Hipsometria GUGiK':gugikHypso};
+const groupP=L.featureGroup().addTo(map), groupHelp=L.featureGroup().addTo(map), groupLines=L.featureGroup().addTo(map), groupGrid=L.featureGroup();
+function color(s){return s>=5?'#7f1d1d':s>=4?'#b45309':s>=3?'#0369a1':'#4b5563'}
+const pts=[
+ {id:'A01',n:'Południowa krawędź przeprawy — bermy i ostre równoległe linie',lat:50.0346042,lon:19.1121551,score:5,why:'Najmocniejsza kombinacja: skarpa, równoległa krawędź, pozycja strzegąca mostu. Szukaj cegły, betonu, wylotu wentylacji, nienaturalnego pagórka.',type:'schron/stanowisko'},
+ {id:'A02',n:'Owalny pagórek na południowym brzegu',lat:50.0343886,lon:19.1146025,score:5,why:'Forma punktowa na tarasie zalewowym, dobry sektor obserwacji wzdłuż rzeki. Najpierw zdjęcia z czterech stron i obejście po obwodzie.',type:'schron maskowany'},
+ {id:'A03',n:'Prostokąt + krótka grobla/dojście',lat:50.0338227,lon:19.1151619,score:4,why:'Geometryczny układ mniej naturalny niż koryta rzeczne. Może być konstrukcja gospodarcza, ale wymaga sprawdzenia.',type:'obiekt prostokątny'},
+ {id:'A04',n:'Północny brzeg naprzeciw A02',lat:50.0353229,lon:19.1158612,score:4,why:'Logiczne miejsce pozycji krzyżowej po drugiej stronie Pszczynki. Sprawdź krawędź pod linią drzew.',type:'pozycja flankująca'},
+ {id:'A05',n:'Trójkątny nasyp przy północnej drodze',lat:50.0354397,lon:19.1106866,score:3,why:'Forma może być drogowa, ale leży przy osi dojścia do przeprawy. Sprawdzić narożniki i nienaturalną cegłę.',type:'nasyp/stanowisko'},
+ {id:'A06',n:'Wschodni odcinek południowej skarpy',lat:50.0346042,lon:19.1167003,score:3,why:'Kontynuacja linii ostrych krawędzi; miejsce może być przykryte roślinnością.',type:'skarpa/krawędź'},
+ {id:'A07',n:'Pinezka Stary most — przyczółki i narzut',lat:50.0349456,lon:19.1132739,score:3,why:'Punkt odniesienia. Sprawdzić okolice przyczółka, ławy, cegły wtórnie użyte i stare drogi dojściowe.',type:'przeprawa'},
+ {id:'A08',n:'Łukowaty wał SW',lat:50.0341192,lon:19.1096377,score:2,why:'Prawdopodobnie dawne koryto/brzeg, ale ostre fragmenty łuku warto sfotografować.',type:'wał/koryto'},
+ {id:'A09',n:'Południowy liniowy nasyp/droga',lat:50.0329873,lon:19.1141130,score:2,why:'Raczej infrastruktura, lecz może wskazywać dawną logistykę lub dojście do pozycji.',type:'droga/nasyp'},
+ {id:'A10',n:'Mikroanomalia centralna — jasny kopczyk na łące',lat:50.034245,lon:19.113770,score:3,why:'Mała punktowa forma widoczna na zrzutach jako nierówność w polu zalewowym. Priorytet po A01–A04.',type:'mikrorelief'},
+ {id:'A11',n:'Węzeł śladów polnych na południe od rzeki',lat:50.033970,lon:19.112880,score:3,why:'Krzyżowanie starych dojazdów i skarp. Szukaj zagłębień oraz cegły pod darnią.',type:'dojście/zagłębienie'},
+ {id:'A12',n:'Wschodni brzeg — zakończenie ostrej krawędzi',lat:50.034980,lon:19.117620,score:3,why:'Końcówka linii krawędziowej; potencjalne miejsce maskowania stanowiska skrajnego.',type:'krawędź'},
+ {id:'A13',n:'Północny meander — półka nad rzeką',lat:50.035760,lon:19.113950,score:3,why:'Półka nad zakolem mogła dawać obserwację przeprawy. Uwaga na mylenie z naturalnym podcięciem brzegu.',type:'punkt obserwacyjny'},
+ {id:'A14',n:'Zachodni wlot do przeprawy',lat:50.034730,lon:19.111250,score:4,why:'Pozycja na osi dojścia od zachodu, blisko linii skarpy. Dobry kandydat do sprawdzenia w pierwszej pętli.',type:'sektor zachodni'}
+];
+function popup(p){return `<div class="pop"><h3>${p.id} — ${p.n}</h3><p><span class="risk r${p.score}">priorytet ${p.score}/5</span> · ${p.type}</p><p><b>WGS84:</b> <code>${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}</code></p><p>${p.why}</p><p><b>Procedura:</b> zdjęcie szerokie, zdjęcie detalu, waypoint GPS, opis roślinności/gruzu. Bez kopania.</p><p><button onclick="copyText('${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}')">Kopiuj współrzędne</button></p></div>`}
+pts.forEach(p=>{
+ const m=L.circleMarker([p.lat,p.lon],{radius:p.score>=5?10:p.score>=4?9:7,color:'#fff',weight:1.5,fillColor:color(p.score),fillOpacity:.95}).bindPopup(popup(p)).bindTooltip(`${p.id}: ${p.n}`);
+ const c=L.circle([p.lat,p.lon],{radius:p.score>=4?22:14,color:color(p.score),weight:1,fillColor:color(p.score),fillOpacity:.13});
+ (p.score>=3?groupP:groupHelp).addLayer(m); (p.score>=3?groupP:groupHelp).addLayer(c);
 });
-
-        
-            
-                var html_22f0dabb17d568f3bdd2a1a646a720d4 = $(`<div id="html_22f0dabb17d568f3bdd2a1a646a720d4" style="width: 100.0%; height: 100.0%;">Pinezka z linku Google Maps: 50.0349456, 19.1132739</div>`)[0];
-                popup_09b881978ac898c8ca0ec0cf6bdb2fe0.setContent(html_22f0dabb17d568f3bdd2a1a646a720d4);
-            
-        
-
-        marker_f414e07c1d8fa33c49647cc726c4f47c.bindPopup(popup_09b881978ac898c8ca0ec0cf6bdb2fe0)
-        ;
-
-        
-    
-    
-            marker_f414e07c1d8fa33c49647cc726c4f47c.bindTooltip(
-                `<div>
-                     Pinezka / Stary most
-                 </div>`,
-                {
-  "sticky": true,
-}
-            );
-        
-    
-                marker_f414e07c1d8fa33c49647cc726c4f47c.setIcon(icon_363407d573a108450ad9c0ad6f17ece1);
-            
-    
-            var feature_group_960212fe2ac385215a568e4518b472ab = L.featureGroup(
-                {
-}
-            );
-        
-    
-            var marker_cdb3fbc48a7f5c6b4b35933aa8976020 = L.marker(
-                [50.034900684441254, 19.113064118862688],
-                {
-}
-            ).addTo(feature_group_960212fe2ac385215a568e4518b472ab);
-        
-    
-            var icon_c4a02a3009443b701d810ed04f494a91 = L.AwesomeMarkers.icon(
-                {
-  "markerColor": "orange",
-  "iconColor": "white",
-  "icon": "search",
-  "prefix": "glyphicon",
-  "extraClasses": "fa-rotate-0",
-}
-            );
-        
-    
-        var popup_57edb318836a70f90eaee7d38954b735 = L.popup({
-  "maxWidth": 360,
-});
-
-        
-            
-                var html_32c34553b757ae0d15856d9472e5b9f6 = $(`<div id="html_32c34553b757ae0d15856d9472e5b9f6" style="width: 100.0%; height: 100.0%;"><b>P1 — Pinezka / Stary most</b><br><b>Pewność:</b> średni<br><b>WGS84:</b> 50.0349007, 19.1130641<br><b>Offset od pinezki:</b> E -15 m, N -5 m<br><br>Punkt startowy. Zweryfikować przyczółki, skarpy i narzuty przy dawnym przejściu przez Pszczynkę.<br><br><b>W terenie:</b> dokumentuj zdjęciami/GPS; nie rozkopuj bez zgód właściciela i konserwatora.</div>`)[0];
-                popup_57edb318836a70f90eaee7d38954b735.setContent(html_32c34553b757ae0d15856d9472e5b9f6);
-            
-        
-
-        marker_cdb3fbc48a7f5c6b4b35933aa8976020.bindPopup(popup_57edb318836a70f90eaee7d38954b735)
-        ;
-
-        
-    
-    
-            marker_cdb3fbc48a7f5c6b4b35933aa8976020.bindTooltip(
-                `<div>
-                     P1: Pinezka / Stary most
-                 </div>`,
-                {
-  "sticky": true,
-}
-            );
-        
-    
-                marker_cdb3fbc48a7f5c6b4b35933aa8976020.setIcon(icon_c4a02a3009443b701d810ed04f494a91);
-            
-    
-            var circle_4848918f2095d1037391bfb044c89c3c = L.circle(
-                [50.034900684441254, 19.113064118862688],
-                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.15, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
-            ).addTo(feature_group_960212fe2ac385215a568e4518b472ab);
-        
-    
-            var marker_3ac11b0cde94680ec91d5b96c2233953 = L.marker(
-                [50.034604241753506, 19.112155067267665],
-                {
-}
-            ).addTo(feature_group_960212fe2ac385215a568e4518b472ab);
-        
-    
-            var icon_94e12dbe060498bc780c55d1df04f5c4 = L.AwesomeMarkers.icon(
-                {
-  "markerColor": "darkred",
-  "iconColor": "white",
-  "icon": "search",
-  "prefix": "glyphicon",
-  "extraClasses": "fa-rotate-0",
-}
-            );
-        
-    
-        var popup_187cb6b17ba00e222fecf868b6a28220 = L.popup({
-  "maxWidth": 360,
-});
-
-        
-            
-                var html_76b5441352de91d13e60deb15686bf17 = $(`<div id="html_76b5441352de91d13e60deb15686bf17" style="width: 100.0%; height: 100.0%;"><b>P2 — Południowy brzeg, linia skarpy</b><br><b>Pewność:</b> wysoki<br><b>WGS84:</b> 50.0346042, 19.1121551<br><b>Offset od pinezki:</b> E -80 m, N -38 m<br><br>Na LiDAR widać równoległą, ostrą krawędź/bermę przy brzegu. Możliwe umocnienie lub zakryta konstrukcja przy stoku.<br><br><b>W terenie:</b> dokumentuj zdjęciami/GPS; nie rozkopuj bez zgód właściciela i konserwatora.</div>`)[0];
-                popup_187cb6b17ba00e222fecf868b6a28220.setContent(html_76b5441352de91d13e60deb15686bf17);
-            
-        
-
-        marker_3ac11b0cde94680ec91d5b96c2233953.bindPopup(popup_187cb6b17ba00e222fecf868b6a28220)
-        ;
-
-        
-    
-    
-            marker_3ac11b0cde94680ec91d5b96c2233953.bindTooltip(
-                `<div>
-                     P2: Południowy brzeg, linia skarpy
-                 </div>`,
-                {
-  "sticky": true,
-}
-            );
-        
-    
-                marker_3ac11b0cde94680ec91d5b96c2233953.setIcon(icon_94e12dbe060498bc780c55d1df04f5c4);
-            
-    
-            var circle_a1a771c9c5443409adc987c7d0cecfcf = L.circle(
-                [50.034604241753506, 19.112155067267665],
-                {"bubblingMouseEvents": true, "color": "darkred", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "darkred", "fillOpacity": 0.15, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 18, "stroke": true, "weight": 2}
-            ).addTo(feature_group_960212fe2ac385215a568e4518b472ab);
-        
-    
-            var marker_4bbe222c23b816c5e4ece119f86145c7 = L.marker(
-                [50.03438864707151, 19.114602513869645],
-                {
-}
-            ).addTo(feature_group_960212fe2ac385215a568e4518b472ab);
-        
-    
-            var icon_8290c4141551439cfadfa1860774117f = L.AwesomeMarkers.icon(
-                {
-  "markerColor": "darkred",
-  "iconColor": "white",
-  "icon": "search",
-  "prefix": "glyphicon",
-  "extraClasses": "fa-rotate-0",
-}
-            );
-        
-    
-        var popup_1cd5a0d52e0c9848066519b90305264d = L.popup({
-  "maxWidth": 360,
-});
-
-        
-            
-                var html_c67f2a7f0905fa9fc4a739ff61357598 = $(`<div id="html_c67f2a7f0905fa9fc4a739ff61357598" style="width: 100.0%; height: 100.0%;"><b>P3 — Owalny/nieregularny pagórek przy południowym brzegu</b><br><b>Pewność:</b> wysoki<br><b>WGS84:</b> 50.0343886, 19.1146025<br><b>Offset od pinezki:</b> E +95 m, N -62 m<br><br>Zgrubienie na krawędzi tarasu zalewowego; dobre miejsce na mały schron ckm maskowany ziemią.<br><br><b>W terenie:</b> dokumentuj zdjęciami/GPS; nie rozkopuj bez zgód właściciela i konserwatora.</div>`)[0];
-                popup_1cd5a0d52e0c9848066519b90305264d.setContent(html_c67f2a7f0905fa9fc4a739ff61357598);
-            
-        
-
-        marker_4bbe222c23b816c5e4ece119f86145c7.bindPopup(popup_1cd5a0d52e0c9848066519b90305264d)
-        ;
-
-        
-    
-    
-            marker_4bbe222c23b816c5e4ece119f86145c7.bindTooltip(
-                `<div>
-                     P3: Owalny/nieregularny pagórek przy południowym brzegu
-                 </div>`,
-                {
-  "sticky": true,
-}
-            );
-        
-    
-                marker_4bbe222c23b816c5e4ece119f86145c7.setIcon(icon_8290c4141551439cfadfa1860774117f);
-            
-    
-            var circle_10f2a5a4cb05ef0821161d9e95bf0a3f = L.circle(
-                [50.03438864707151, 19.114602513869645],
-                {"bubblingMouseEvents": true, "color": "darkred", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "darkred", "fillOpacity": 0.15, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 18, "stroke": true, "weight": 2}
-            ).addTo(feature_group_960212fe2ac385215a568e4518b472ab);
-        
-    
-            var marker_2193d03c42e7c0ffe6b84fe779403c22 = L.marker(
-                [50.03382271103126, 19.115161930235814],
-                {
-}
-            ).addTo(feature_group_960212fe2ac385215a568e4518b472ab);
-        
-    
-            var icon_e944bba435bf668796911285ce995865 = L.AwesomeMarkers.icon(
-                {
-  "markerColor": "orange",
-  "iconColor": "white",
-  "icon": "search",
-  "prefix": "glyphicon",
-  "extraClasses": "fa-rotate-0",
-}
-            );
-        
-    
-        var popup_61b9922253c028cd999fcc983b70b837 = L.popup({
-  "maxWidth": 360,
-});
-
-        
-            
-                var html_9b4397827d085a9e3b0be4db27c213b7 = $(`<div id="html_9b4397827d085a9e3b0be4db27c213b7" style="width: 100.0%; height: 100.0%;"><b>P4 — Prostokątny ślad z krótką groblą</b><br><b>Pewność:</b> średni<br><b>WGS84:</b> 50.0338227, 19.1151619<br><b>Offset od pinezki:</b> E +135 m, N -125 m<br><br>Kształt prostokątny i dojście prostopadłe do drogi/wału. Sprawdzić cegłę, beton, metal i zmianę roślinności.<br><br><b>W terenie:</b> dokumentuj zdjęciami/GPS; nie rozkopuj bez zgód właściciela i konserwatora.</div>`)[0];
-                popup_61b9922253c028cd999fcc983b70b837.setContent(html_9b4397827d085a9e3b0be4db27c213b7);
-            
-        
-
-        marker_2193d03c42e7c0ffe6b84fe779403c22.bindPopup(popup_61b9922253c028cd999fcc983b70b837)
-        ;
-
-        
-    
-    
-            marker_2193d03c42e7c0ffe6b84fe779403c22.bindTooltip(
-                `<div>
-                     P4: Prostokątny ślad z krótką groblą
-                 </div>`,
-                {
-  "sticky": true,
-}
-            );
-        
-    
-                marker_2193d03c42e7c0ffe6b84fe779403c22.setIcon(icon_e944bba435bf668796911285ce995865);
-            
-    
-            var circle_7c9049406cb26e099b90fbff71e259c8 = L.circle(
-                [50.03382271103126, 19.115161930235814],
-                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.15, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
-            ).addTo(feature_group_960212fe2ac385215a568e4518b472ab);
-        
-    
-            var marker_8549f3b7b1397ab1ffed546026ce9458 = L.marker(
-                [50.03543967114624, 19.110686599306476],
-                {
-}
-            ).addTo(feature_group_960212fe2ac385215a568e4518b472ab);
-        
-    
-            var icon_b2b8eb91265e57cbbf89f696601588ad = L.AwesomeMarkers.icon(
-                {
-  "markerColor": "orange",
-  "iconColor": "white",
-  "icon": "search",
-  "prefix": "glyphicon",
-  "extraClasses": "fa-rotate-0",
-}
-            );
-        
-    
-        var popup_c59db8ddbb71789ab25ded7007a04842 = L.popup({
-  "maxWidth": 360,
-});
-
-        
-            
-                var html_7514d0845ee30fe9e2fc242c5d75ead7 = $(`<div id="html_7514d0845ee30fe9e2fc242c5d75ead7" style="width: 100.0%; height: 100.0%;"><b>P5 — Trójkątny nasyp przy północnej drodze dojazdowej</b><br><b>Pewność:</b> średni<br><b>WGS84:</b> 50.0354397, 19.1106866<br><b>Offset od pinezki:</b> E -185 m, N +55 m<br><br>Trójkątna forma ziemna widoczna przy skrzyżowaniu śladów dróg; możliwe stanowisko lub efekt robót drogowych.<br><br><b>W terenie:</b> dokumentuj zdjęciami/GPS; nie rozkopuj bez zgód właściciela i konserwatora.</div>`)[0];
-                popup_c59db8ddbb71789ab25ded7007a04842.setContent(html_7514d0845ee30fe9e2fc242c5d75ead7);
-            
-        
-
-        marker_8549f3b7b1397ab1ffed546026ce9458.bindPopup(popup_c59db8ddbb71789ab25ded7007a04842)
-        ;
-
-        
-    
-    
-            marker_8549f3b7b1397ab1ffed546026ce9458.bindTooltip(
-                `<div>
-                     P5: Trójkątny nasyp przy północnej drodze dojazdowej
-                 </div>`,
-                {
-  "sticky": true,
-}
-            );
-        
-    
-                marker_8549f3b7b1397ab1ffed546026ce9458.setIcon(icon_b2b8eb91265e57cbbf89f696601588ad);
-            
-    
-            var circle_972b453485fe28184aea529757d2446f = L.circle(
-                [50.03543967114624, 19.110686599306476],
-                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.15, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
-            ).addTo(feature_group_960212fe2ac385215a568e4518b472ab);
-        
-    
-            var marker_ced579ca0517288caac998bb0c1bbce3 = L.marker(
-                [50.034604241753506, 19.11670032524277],
-                {
-}
-            ).addTo(feature_group_960212fe2ac385215a568e4518b472ab);
-        
-    
-            var icon_7852f43c5aadb0de8eec8e5f6d834d0b = L.AwesomeMarkers.icon(
-                {
-  "markerColor": "orange",
-  "iconColor": "white",
-  "icon": "search",
-  "prefix": "glyphicon",
-  "extraClasses": "fa-rotate-0",
-}
-            );
-        
-    
-        var popup_658d9916a3ae2d9113be5b8a5b27e533 = L.popup({
-  "maxWidth": 360,
-});
-
-        
-            
-                var html_866bf3665aca94cef521afc2ae6abfdd = $(`<div id="html_866bf3665aca94cef521afc2ae6abfdd" style="width: 100.0%; height: 100.0%;"><b>P7 — Wschodni brzeg pod linią drzew</b><br><b>Pewność:</b> średni<br><b>WGS84:</b> 50.0346042, 19.1167003<br><b>Offset od pinezki:</b> E +245 m, N -38 m<br><br>Miejsce kontynuacji ostrych krawędzi po południowej stronie rzeki; w terenie może być zasłonięte zielenią.<br><br><b>W terenie:</b> dokumentuj zdjęciami/GPS; nie rozkopuj bez zgód właściciela i konserwatora.</div>`)[0];
-                popup_658d9916a3ae2d9113be5b8a5b27e533.setContent(html_866bf3665aca94cef521afc2ae6abfdd);
-            
-        
-
-        marker_ced579ca0517288caac998bb0c1bbce3.bindPopup(popup_658d9916a3ae2d9113be5b8a5b27e533)
-        ;
-
-        
-    
-    
-            marker_ced579ca0517288caac998bb0c1bbce3.bindTooltip(
-                `<div>
-                     P7: Wschodni brzeg pod linią drzew
-                 </div>`,
-                {
-  "sticky": true,
-}
-            );
-        
-    
-                marker_ced579ca0517288caac998bb0c1bbce3.setIcon(icon_7852f43c5aadb0de8eec8e5f6d834d0b);
-            
-    
-            var circle_b571b2e250634a5a996dce84eb3a3880 = L.circle(
-                [50.034604241753506, 19.11670032524277],
-                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.15, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
-            ).addTo(feature_group_960212fe2ac385215a568e4518b472ab);
-        
-    
-            var marker_785cd41c39c93de7bee77df8a8cc53e2 = L.marker(
-                [50.03532289069349, 19.115861200693523],
-                {
-}
-            ).addTo(feature_group_960212fe2ac385215a568e4518b472ab);
-        
-    
-            var icon_37f7dc3864113f761c33cf72e14c5d40 = L.AwesomeMarkers.icon(
-                {
-  "markerColor": "orange",
-  "iconColor": "white",
-  "icon": "search",
-  "prefix": "glyphicon",
-  "extraClasses": "fa-rotate-0",
-}
-            );
-        
-    
-        var popup_e01400d5a808fc9a60384b7c4d986fa5 = L.popup({
-  "maxWidth": 360,
-});
-
-        
-            
-                var html_14765a9a6ef07069fd8404c26ed646af = $(`<div id="html_14765a9a6ef07069fd8404c26ed646af" style="width: 100.0%; height: 100.0%;"><b>P8 — Północny brzeg naprzeciw P3</b><br><b>Pewność:</b> średni<br><b>WGS84:</b> 50.0353229, 19.1158612<br><b>Offset od pinezki:</b> E +185 m, N +42 m<br><br>Podłużna krawędź równoległa do rzeki. Jeżeli schrony broniły przeprawy, drugi brzeg też jest logiczny.<br><br><b>W terenie:</b> dokumentuj zdjęciami/GPS; nie rozkopuj bez zgód właściciela i konserwatora.</div>`)[0];
-                popup_e01400d5a808fc9a60384b7c4d986fa5.setContent(html_14765a9a6ef07069fd8404c26ed646af);
-            
-        
-
-        marker_785cd41c39c93de7bee77df8a8cc53e2.bindPopup(popup_e01400d5a808fc9a60384b7c4d986fa5)
-        ;
-
-        
-    
-    
-            marker_785cd41c39c93de7bee77df8a8cc53e2.bindTooltip(
-                `<div>
-                     P8: Północny brzeg naprzeciw P3
-                 </div>`,
-                {
-  "sticky": true,
-}
-            );
-        
-    
-                marker_785cd41c39c93de7bee77df8a8cc53e2.setIcon(icon_37f7dc3864113f761c33cf72e14c5d40);
-            
-    
-            var circle_936395fa393570375e8cd37094490ccd = L.circle(
-                [50.03532289069349, 19.115861200693523],
-                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.15, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
-            ).addTo(feature_group_960212fe2ac385215a568e4518b472ab);
-        
-    
-            feature_group_960212fe2ac385215a568e4518b472ab.addTo(map_e4b3e4387dc9165c731eb21f3195ec04);
-        
-    
-            var feature_group_92332ef000920dbf1be81058fab8a26b = L.featureGroup(
-                {
-}
-            );
-        
-    
-            var marker_fd5f18157197a3325bf25ae1b6472fb5 = L.marker(
-                [50.03411915371901, 19.109637693619913],
-                {
-}
-            ).addTo(feature_group_92332ef000920dbf1be81058fab8a26b);
-        
-    
-            var icon_5b0eb6cdaf73b96af5443c0863697a37 = L.AwesomeMarkers.icon(
-                {
-  "markerColor": "cadetblue",
-  "iconColor": "white",
-  "icon": "search",
-  "prefix": "glyphicon",
-  "extraClasses": "fa-rotate-0",
-}
-            );
-        
-    
-        var popup_4b28d48e679d64c2cc430b3dd7e937db = L.popup({
-  "maxWidth": 360,
-});
-
-        
-            
-                var html_a2c14c43af5c1511ad442e6b5bc53402 = $(`<div id="html_a2c14c43af5c1511ad442e6b5bc53402" style="width: 100.0%; height: 100.0%;"><b>P6 — Łukowaty wał południowo-zachodni</b><br><b>Pewność:</b> niski-średni<br><b>WGS84:</b> 50.0341192, 19.1096377<br><b>Offset od pinezki:</b> E -260 m, N -92 m<br><br>Wyraźna krzywizna na tarasie; możliwy stary brzeg/koryto, ale warto sprawdzić odcinki z ostrymi narożnikami.<br><br><b>W terenie:</b> dokumentuj zdjęciami/GPS; nie rozkopuj bez zgód właściciela i konserwatora.</div>`)[0];
-                popup_4b28d48e679d64c2cc430b3dd7e937db.setContent(html_a2c14c43af5c1511ad442e6b5bc53402);
-            
-        
-
-        marker_fd5f18157197a3325bf25ae1b6472fb5.bindPopup(popup_4b28d48e679d64c2cc430b3dd7e937db)
-        ;
-
-        
-    
-    
-            marker_fd5f18157197a3325bf25ae1b6472fb5.bindTooltip(
-                `<div>
-                     P6: Łukowaty wał południowo-zachodni
-                 </div>`,
-                {
-  "sticky": true,
-}
-            );
-        
-    
-                marker_fd5f18157197a3325bf25ae1b6472fb5.setIcon(icon_5b0eb6cdaf73b96af5443c0863697a37);
-            
-    
-            var circle_ca61a9ced4ba50731a02002041471c1d = L.circle(
-                [50.03411915371901, 19.109637693619913],
-                {"bubblingMouseEvents": true, "color": "cadetblue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "cadetblue", "fillOpacity": 0.15, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
-            ).addTo(feature_group_92332ef000920dbf1be81058fab8a26b);
-        
-    
-            var marker_34580c16bf337e6de3d0f0bf6875bd0b = L.marker(
-                [50.03298728163852, 19.11411302454925],
-                {
-}
-            ).addTo(feature_group_92332ef000920dbf1be81058fab8a26b);
-        
-    
-            var icon_dba3d23fa1e07d8a0f16ee829bb1ac1a = L.AwesomeMarkers.icon(
-                {
-  "markerColor": "gray",
-  "iconColor": "white",
-  "icon": "search",
-  "prefix": "glyphicon",
-  "extraClasses": "fa-rotate-0",
-}
-            );
-        
-    
-        var popup_02dc381e43ba550d492288395778e243 = L.popup({
-  "maxWidth": 360,
-});
-
-        
-            
-                var html_abc12a53d11fd95bf7b98cbc24d4784d = $(`<div id="html_abc12a53d11fd95bf7b98cbc24d4784d" style="width: 100.0%; height: 100.0%;"><b>P9 — Linia drogi/torowiska na południu</b><br><b>Pewność:</b> niski<br><b>WGS84:</b> 50.0329873, 19.1141130<br><b>Offset od pinezki:</b> E +60 m, N -218 m<br><br>Długi liniowy nasyp widoczny na LiDAR. Raczej infrastruktura, ale ma sens jako droga zaopatrzenia/ukryte dojście.<br><br><b>W terenie:</b> dokumentuj zdjęciami/GPS; nie rozkopuj bez zgód właściciela i konserwatora.</div>`)[0];
-                popup_02dc381e43ba550d492288395778e243.setContent(html_abc12a53d11fd95bf7b98cbc24d4784d);
-            
-        
-
-        marker_34580c16bf337e6de3d0f0bf6875bd0b.bindPopup(popup_02dc381e43ba550d492288395778e243)
-        ;
-
-        
-    
-    
-            marker_34580c16bf337e6de3d0f0bf6875bd0b.bindTooltip(
-                `<div>
-                     P9: Linia drogi/torowiska na południu
-                 </div>`,
-                {
-  "sticky": true,
-}
-            );
-        
-    
-                marker_34580c16bf337e6de3d0f0bf6875bd0b.setIcon(icon_dba3d23fa1e07d8a0f16ee829bb1ac1a);
-            
-    
-            var circle_15bafa92fcabf38cedecdc9b3b1ce0d6 = L.circle(
-                [50.03298728163852, 19.11411302454925],
-                {"bubblingMouseEvents": true, "color": "gray", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "gray", "fillOpacity": 0.15, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 12, "stroke": true, "weight": 2}
-            ).addTo(feature_group_92332ef000920dbf1be81058fab8a26b);
-        
-    
-            feature_group_92332ef000920dbf1be81058fab8a26b.addTo(map_e4b3e4387dc9165c731eb21f3195ec04);
-        
-    
-            var poly_line_6f622e11c7a53e68a7a04edf769ee0e2 = L.polyline(
-                [[50.03411915371901, 19.109637693619913], [50.034604241753506, 19.112155067267665], [50.034900684441254, 19.113064118862688], [50.03438864707151, 19.114602513869645], [50.03382271103126, 19.115161930235814], [50.034604241753506, 19.11670032524277], [50.03532289069349, 19.115861200693523], [50.03543967114624, 19.110686599306476]],
-                {"bubblingMouseEvents": true, "color": "purple", "dashArray": null, "dashOffset": null, "fill": false, "fillColor": "purple", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 0.8, "smoothFactor": 1.0, "stroke": true, "weight": 3}
-            ).addTo(map_e4b3e4387dc9165c731eb21f3195ec04);
-        
-    
-            poly_line_6f622e11c7a53e68a7a04edf769ee0e2.bindTooltip(
-                `<div>
-                     Sugerowana pętla weryfikacji terenowej
-                 </div>`,
-                {
-  "sticky": true,
-}
-            );
-        
-    
-            var layer_control_bb741a37e28143aa471dbd91621289c3_layers = {
-                base_layers : {
-                    "OSM" : tile_layer_697d75421512275bf49453b239fd0057,
-                    "Esri satelita" : tile_layer_286a99788c8d3385932aa7b77027519a,
-                },
-                overlays :  {
-                    "Geoportal NMT 1 m \u2014 cieniowanie LiDAR" : macro_element_7ccaa54fa7877b3e8df5f2830910e4cb,
-                    "Geoportal NMT 1 m \u2014 hipsometria" : macro_element_0dfe6b2c99834198e0267244029cf07a,
-                    "Punkty do sprawdzenia \u2014 priorytet wysoki/\u015bredni" : feature_group_960212fe2ac385215a568e4518b472ab,
-                    "Punkty pomocnicze / ni\u017csza pewno\u015b\u0107" : feature_group_92332ef000920dbf1be81058fab8a26b,
-                },
-            };
-            let layer_control_bb741a37e28143aa471dbd91621289c3 = L.control.layers(
-                layer_control_bb741a37e28143aa471dbd91621289c3_layers.base_layers,
-                layer_control_bb741a37e28143aa471dbd91621289c3_layers.overlays,
-                {
-  "position": "topright",
-  "collapsed": false,
-  "autoZIndex": true,
-}
-            ).addTo(map_e4b3e4387dc9165c731eb21f3195ec04);
-
-        
+// tactical sectors / route
+L.polyline(pts.filter(p=>['A08','A01','A07','A02','A03','A06','A12','A04','A05','A14'].includes(p.id)).map(p=>[p.lat,p.lon]),{color:'#c084fc',weight:3,opacity:.9}).bindTooltip('Sugerowana pętla terenowa: zacznij od A01/A02/A14/A03').addTo(groupLines);
+L.polyline([[50.0359,19.1102],[50.0346042,19.1121551],[50.0338227,19.1151619],[50.0346042,19.1167003]],{color:'#f97316',weight:2,dashArray:'6 7',opacity:.9}).bindTooltip('Hipotetyczna linia kontroli południowego brzegu').addTo(groupLines);
+L.polyline([[50.0360,19.1162],[50.0353229,19.1158612],[50.0343886,19.1146025],[50.0346042,19.1121551]],{color:'#38bdf8',weight:2,dashArray:'5 6',opacity:.9}).bindTooltip('Sektory krzyżowego sprawdzenia przeprawy').addTo(groupLines);
+L.circle(center,{radius:450,color:'#60a5fa',fill:false,weight:2,dashArray:'8 8'}).bindTooltip('Rdzeń analizy 450 m').addTo(groupLines);
+// grid search cells
+for(let dx=-2; dx<=2; dx++){for(let dy=-2; dy<=2; dy++){let lat=center[0]+dy*0.00135;let lon=center[1]+dx*0.00195;let score=Math.max(0,5-Math.abs(dx)-Math.abs(dy));L.rectangle([[lat-0.00065,lon-0.00095],[lat+0.00065,lon+0.00095]],{color:'#94a3b8',weight:.8,opacity:.35,fillOpacity:score*.018}).bindTooltip(`Komórka skanowania L${score}`).addTo(groupGrid)}}
+overlays['Punkty kandydackie — priorytet 3–5']=groupP; overlays['Punkty pomocnicze — priorytet 2']=groupHelp; overlays['Linie taktyczne / pętla']=groupLines; overlays['Siatka systematycznego obejścia']=groupGrid;
+L.control.layers(base,overlays,{collapsed:false,position:'topright'}).addTo(map);
+map.on('click', e=>{ L.popup().setLatLng(e.latlng).setContent(`<b>Współrzędne</b><br>${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}<br><button onclick="copyText('${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}')">Kopiuj</button>`).openOn(map); });
+document.getElementById('opLidar').oninput=e=>gugikShade.setOpacity(+e.target.value); document.getElementById('opHypso').oninput=e=>gugikHypso.setOpacity(+e.target.value); document.getElementById('opEsriHS').oninput=e=>esriHS.setOpacity(+e.target.value);
+function toggleSide(){const s=document.getElementById('side'); s.style.display=s.style.display==='none'?'block':'none'}
+function copyText(t){navigator.clipboard?.writeText(t)}
+function geojson(){return {type:'FeatureCollection',features:pts.map(p=>({type:'Feature',properties:p,geometry:{type:'Point',coordinates:[p.lon,p.lat]}}))}}
+function dl(name,txt,type='text/plain'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function downloadGeoJSON(){dl('bunkry_bojszowy_kandydaci.geojson',JSON.stringify(geojson(),null,2),'application/geo+json')}
+function downloadGPX(){let w=pts.map(p=>`<wpt lat="${p.lat}" lon="${p.lon}"><name>${p.id} ${p.n}</name><desc>Priorytet ${p.score}/5. ${p.why}</desc></wpt>`).join('\n');dl('bunkry_bojszowy_kandydaci.gpx',`<?xml version="1.0"?><gpx version="1.1" creator="ChatGPT terrain analysis" xmlns="http://www.topografix.com/GPX/1/1">${w}</gpx>`,'application/gpx+xml')}
+function downloadKML(){let w=pts.map(p=>`<Placemark><name>${p.id} ${p.n}</name><description>Priorytet ${p.score}/5. ${p.why}</description><Point><coordinates>${p.lon},${p.lat},0</coordinates></Point></Placemark>`).join('\n');dl('bunkry_bojszowy_kandydaci.kml',`<?xml version="1.0"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document>${w}</Document></kml>`,'application/vnd.google-earth.kml+xml')}
 </script>
+</body>
 </html>
