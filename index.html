@@ -1,174 +1,52 @@
-<!doctype html>
-<html lang="pl">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>Bunkry Bojszowy — analiza LiDAR / teren / historia</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<!DOCTYPE html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Bojszowy — gotowy wynik typowania schronów</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  html, body, #map { height:100%; margin:0; background:#111; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-  .panel { position: fixed; z-index: 900; background: rgba(12,14,18,.92); color:#f2f2f2; border:1px solid rgba(255,255,255,.16); box-shadow:0 8px 28px rgba(0,0,0,.35); backdrop-filter: blur(8px); }
-  #topbar { left:10px; right:10px; top:10px; padding:10px 12px; border-radius:14px; display:flex; gap:10px; align-items:center; justify-content:space-between; }
-  #topbar h1 { font-size:15px; margin:0; line-height:1.15; letter-spacing:.2px; }
-  #topbar small { display:block; color:#b8c0cc; font-weight:500; margin-top:2px; }
-  #side { left:10px; bottom:10px; width:370px; max-width:calc(100vw - 20px); max-height:48vh; overflow:auto; border-radius:14px; padding:12px; }
-  #side h2 { font-size:14px; margin:0 0 8px; }
-  #side p, #side li { font-size:12px; line-height:1.35; color:#e5e7eb; }
-  #side ul { padding-left:18px; margin:8px 0; }
-  .btn { border:1px solid rgba(255,255,255,.18); color:white; background:#242933; border-radius:10px; padding:8px 10px; font-weight:700; font-size:12px; cursor:pointer; }
-  .btn:active { transform:translateY(1px); }
-  .risk { display:inline-block; padding:2px 7px; border-radius:999px; color:#fff; font-weight:800; font-size:11px; }
-  .r5 { background:#7f1d1d; } .r4 { background:#b45309; } .r3 { background:#0369a1; } .r2 { background:#4b5563; }
-  .legend { position:fixed; right:10px; bottom:18px; z-index:850; max-width:260px; border-radius:14px; padding:10px 12px; }
-  .legend div { font-size:12px; margin:4px 0; color:#e5e7eb; }
-  .dot { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:6px; vertical-align:-1px; }
-  .leaflet-control-layers { background:rgba(12,14,18,.92)!important; color:white!important; border-radius:12px!important; border:1px solid rgba(255,255,255,.15)!important; }
-  .leaflet-control-layers label { font-size:12px; }
-  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background:#0f131a; color:#f8fafc; }
-  .leaflet-popup-content { margin:12px; min-width:250px; }
-  .pop h3 { margin:0 0 6px; font-size:16px; } .pop p { margin:6px 0; font-size:12px; line-height:1.35; } .pop code { color:#bae6fd; }
-  .leaflet-container.crosshair-cursor { cursor:crosshair; }
-  input[type=range] { width:145px; vertical-align:middle; }
-  .opacityBox { font-size:12px; color:#dbeafe; margin-top:6px; }
-  @media (max-width: 640px) { #topbar { top:6px; left:6px; right:6px; padding:9px; } #topbar h1{font-size:13px} #side { display:none; } .legend{display:none;} .leaflet-control-layers{max-height:58vh; overflow:auto;} }
-</style>
-</head>
-<body>
-<div id="map"></div>
-<div id="topbar" class="panel">
-  <div><h1>Bunkry Bojszowy — mapa prospekcyjna AI/LiDAR <small>Stary most / Pszczynka · wersja terenowa 2.0</small></h1></div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-    <button class="btn" onclick="downloadGeoJSON()">GeoJSON</button>
-    <button class="btn" onclick="downloadGPX()">GPX</button>
-    <button class="btn" onclick="downloadKML()">KML</button>
-    <button class="btn" onclick="toggleSide()">Metoda</button>
-  </div>
-</div>
-<div id="side" class="panel">
-  <h2>Model detekcji — jak czytać mapę</h2>
-  <p>To jest mapa prospekcyjna: łączy logikę pola walki, LiDAR/NMT, hipsometrię, hydrologię, krawędzie tarasu zalewowego, ślady dawnych dróg i miejsca z dobrym polem ostrzału. Punkty nie są potwierdzeniem obiektu.</p>
-  <ul>
-    <li><b>Priorytet 5–4:</b> anomalia geometryczna + sens taktyczny + bliskość przeprawy/skarp.</li>
-    <li><b>Priorytet 3:</b> forma podejrzana, ale możliwe pochodzenie naturalne lub rolnicze.</li>
-    <li><b>Priorytet 2:</b> kontrola pomocnicza, ślad drogi, wału lub naturalnej krawędzi.</li>
-  </ul>
-  <div class="opacityBox">Geoportal LiDAR: <input id="opLidar" type="range" min="0" max="1" step="0.05" value="0.70"></div>
-  <div class="opacityBox">Hipsometria: <input id="opHypso" type="range" min="0" max="1" step="0.05" value="0.35"></div>
-  <div class="opacityBox">Esri Hillshade: <input id="opEsriHS" type="range" min="0" max="1" step="0.05" value="0.65"></div>
-  <p><b>Bezpieczeństwo:</b> rób tylko oględziny, zdjęcia i GPS. Bez kopania, bez naruszania gruntu, bez wejścia na teren prywatny bez zgody.</p>
-</div>
-<div class="legend panel">
-  <div><span class="dot" style="background:#7f1d1d"></span>5 — najwyższy priorytet</div>
-  <div><span class="dot" style="background:#b45309"></span>4 — wysoki priorytet</div>
-  <div><span class="dot" style="background:#0369a1"></span>3 — średni priorytet</div>
-  <div><span class="dot" style="background:#4b5563"></span>2 — pomocnicze</div>
-</div>
+html,body,#map{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif}.panel{position:absolute;z-index:1000;left:10px;bottom:10px;width:360px;max-width:calc(100% - 20px);background:#fff;border-radius:12px;box-shadow:0 4px 20px #0005;padding:12px;font-size:13px;line-height:1.35}.panel h3{margin:0 0 6px;font-size:16px}.btn{display:inline-block;margin:4px 4px 0 0;padding:7px 9px;border-radius:8px;background:#111;color:#fff;text-decoration:none;cursor:pointer}.legend{position:absolute;z-index:1000;right:10px;bottom:28px;background:#fff;border-radius:10px;box-shadow:0 3px 14px #0004;padding:10px;font-size:12px}.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px}.popup h3{margin:0 0 5px}.score{font-weight:700;font-size:15px}.small{color:#555;font-size:12px}.warn{color:#8a3700;font-weight:700}.leaflet-popup-content{min-width:280px}.rank{font-weight:700}
+</style></head><body><div id="map"></div>
+<div class="panel"><h3>Gotowy wynik typowania — Bojszowy / Pszczynka</h3>
+<b>Cel:</b> wskazanie miejsc do sprawdzenia, bez konieczności samodzielnej analizy.<br>
+<b>Metoda:</b> scoring wielokryterialny: anomalia NMT, geometria antropogeniczna, relacja do przeprawy, linia ognia, maskowanie, układ parowy po obu brzegach i zgodność historyczna.<br>
+<span class="warn">Zasada terenowa:</span> zdjęcia/GPS/oględziny; bez kopania i bez wejścia na cudzy teren bez zgody.<br>
+<a class="btn" onclick="downloadGPX()">Pobierz GPX</a><a class="btn" onclick="downloadKML()">Pobierz KML</a><a class="btn" onclick="downloadCSV()">CSV</a></div>
+<div class="legend"><b>Priorytet</b><br><span class="dot" style="background:#8b0000"></span>A — sprawdź najpierw<br><span class="dot" style="background:#ff7a00"></span>B — sprawdź w drugiej kolejności<br><span class="dot" style="background:#4374b3"></span>C — pomocnicze / kontekst</div>
 <script>
 const center=[50.0349456,19.1132739];
-const map=L.map('map',{center:center,zoom:17,preferCanvas:true,zoomControl:true});
-map.attributionControl.setPrefix('');
-L.control.scale({imperial:false}).addTo(map);
-const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
-const esriImg=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:18,attribution:'Esri World Imagery'}).addTo(map);
-const esriHS=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:16,opacity:.65,attribution:'Esri World Hillshade'}).addTo(map);
-const gugikShade=L.tileLayer.wms('https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/ShadedRelief',{layers:'Raster',format:'image/png',transparent:true,version:'1.1.1',opacity:.70,attribution:'GUGiK NMT 1 m — cieniowanie'}).addTo(map);
-const gugikHypso=L.tileLayer.wms('https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/Hypsometry',{layers:'ISOK_HipsoDyn',format:'image/png',transparent:true,version:'1.1.1',opacity:.35,attribution:'GUGiK NMT — hipsometria'});
-const topo=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'OpenTopoMap'});
-const base={'Esri satelita':esriImg,'OpenStreetMap':osm,'OpenTopoMap':topo};
-const overlays={'Szybki LiDAR: Esri Hillshade':esriHS,'Dokładny LiDAR: GUGiK NMT 1 m':gugikShade,'Hipsometria GUGiK':gugikHypso};
-const groupP=L.featureGroup().addTo(map), groupHelp=L.featureGroup().addTo(map), groupLines=L.featureGroup().addTo(map), groupGrid=L.featureGroup();
-function color(s){return s>=5?'#7f1d1d':s>=4?'#b45309':s>=3?'#0369a1':'#4b5563'}
 const pts=[
- {id:'A01',n:'Południowa krawędź przeprawy — bermy i ostre równoległe linie',lat:50.0346042,lon:19.1121551,score:5,type:'schron/stanowisko',
-  why:'Punkt został wyznaczony, bo łączy najmocniejszy sygnał terenowy z logiką obrony przeprawy.',
-  evidence:['LiDAR: równoległa, ostra krawędź/berma przy południowej skarpie, mniej naturalna niż miękkie formy meandru.','Taktyka: miejsce kontroluje dojście do starego mostu i oś wzdłuż Pszczynki.','Hipsometria: leży na przejściu tarasu/skarpy, czyli tam gdzie schron mógł być zakopany i maskowany.'],
-  check:['Obejść krawędź od strony rzeki i łąki.','Szukać cegły, betonu, nienaturalnego kopca, zapadliska, otworu wentylacyjnego lub zmiany roślinności.','Zrobić zdjęcia wzdłuż linii skarpy, nie tylko punktu.']},
- {id:'A02',n:'Owalny pagórek na południowym brzegu',lat:50.0343886,lon:19.1146025,score:5,type:'schron maskowany',
-  why:'Wybrany jako kandydat punktowy, bo wygląda jak lokalna, zamknięta anomalia na tle większych naturalnych form doliny.',
-  evidence:['LiDAR: mała forma wypukła/owalna przy krawędzi tarasu.','Taktyka: daje sektor obserwacji/ognia wzdłuż rzeki i w stronę przeprawy.','Kontekst: pasuje do małego schronu ziemno-ceglanego przykrytego darnią.'],
-  check:['Obejść pełny obwód pagórka.','Sprawdzić czy forma ma regularny strop, narożnik, zapadnięcie albo gruz ceglany.','Porównać z naturalnymi kępami i wykrotami w pobliżu.']},
- {id:'A03',n:'Prostokąt + krótka grobla/dojście',lat:50.0338227,lon:19.1151619,score:4,type:'obiekt prostokątny',
-  why:'Wyznaczony przez geometrię: prostokątne i prostopadłe układy są mniej typowe dla naturalnej doliny rzecznej.',
-  evidence:['LiDAR: widoczny ślad prostokątny oraz krótka linia dojściowa/grobla.','Taktyka: położenie za południową krawędzią mogło służyć jako zaplecze, stanowisko lub ukrycie.','Ryzyko błędu: może to być element rolniczy albo melioracyjny, dlatego priorytet 4, nie 5.'],
-  check:['Szukaj prostych narożników, cegieł i regularnych krawędzi.','Sprawdź, czy dojście prowadzi logicznie do rzeki lub starej drogi.','Zanotuj materiał: ziemia, kamień, cegła, beton.']},
- {id:'A04',n:'Północny brzeg naprzeciw A02',lat:50.0353229,lon:19.1158612,score:4,type:'pozycja flankująca',
-  why:'Punkt wynika z analizy krzyżowej: jeżeli broniono przeprawy, sensowne są pozycje na obu brzegach.',
-  evidence:['LiDAR: podłużna krawędź równoległa do rzeki.','Taktyka: możliwy sektor flankujący naprzeciw A02 i A03.','Teren: linia drzew może maskować obiekt niewidoczny na zwykłej satelicie.'],
-  check:['Sprawdzić skraj linii drzew i półkę nad rzeką.','Szukać małych zapadlisk po stropie lub wejściu.','Uważać na naturalne podcięcie brzegu.']},
- {id:'A05',n:'Trójkątny nasyp przy północnej drodze',lat:50.0354397,lon:19.1106866,score:3,type:'nasyp/stanowisko',
-  why:'Zaznaczony jako kontrola, bo forma leży przy osi dojścia do przeprawy, ale może być zwykłym efektem robót drogowych.',
-  evidence:['LiDAR: trójkątna forma ziemna przy skrzyżowaniu śladów.','Taktyka: dobre miejsce kontroli drogi dojściowej od zachodu/północy.','Niepewność: geometria może pochodzić z prac drogowych.'],
-  check:['Sprawdzić czy są cegły/beton zamiast samego nasypu.','Zobaczyć, czy forma ma wnękę lub zapadlisko.','Porównać z poboczem drogi.']},
- {id:'A06',n:'Wschodni odcinek południowej skarpy',lat:50.0346042,lon:19.1167003,score:3,type:'skarpa/krawędź',
-  why:'Wyznaczony jako kontynuacja podejrzanej linii krawędziowej po południowej stronie rzeki.',
-  evidence:['LiDAR: ciągłość ostrej krawędzi i lokalne zgrubienia.','Taktyka: mógł domykać sektor wschodni.','Niepewność: wiele form może być erozją brzegu.'],
-  check:['Przejść wzdłuż skarpy, nie tylko do punktu.','Szukać fragmentów regularnych, prostych lub punktowych kopców.','Dokumentować miejsca z cegłą i metalem.']},
- {id:'A07',n:'Pinezka Stary most — przyczółki i narzut',lat:50.0349456,lon:19.1132739,score:3,type:'przeprawa',
-  why:'To punkt odniesienia, bo schrony przy przeprawach zwykle ustawiano tak, aby kontrolowały most, przyczółki i drogi dojścia.',
-  evidence:['Historia terenu: lokalna nazwa i wskazanie starego mostu.','Taktyka: przeprawa jest naturalnym celem obrony.','LiDAR/satelita: widoczne drogi i krawędzie związane z dawnym przejściem.'],
-  check:['Sprawdzić przyczółki, skarpy, narzut kamienny i wtórnie użyte cegły.','Sfotografować dojścia po obu stronach.','Nie rozbierać ani nie ruszać elementów mostu.']},
- {id:'A08',n:'Łukowaty wał SW',lat:50.0341192,lon:19.1096377,score:2,type:'wał/koryto',
-  why:'Punkt pomocniczy: forma może być dawnym korytem, ale ostre fragmenty łuku mogą ukrywać ingerencję człowieka.',
-  evidence:['LiDAR: łukowaty wał/krawędź na tarasie.','Hydrologia: pasuje do starego brzegu lub starorzecza.','Niepewność: bardziej naturalne niż militarne.'],
-  check:['Sprawdzać tylko ostre narożniki i nietypowe zgrubienia.','Odróżnić naturalny brzeg od ceglanego/gruzowego nasypu.']},
- {id:'A09',n:'Południowy liniowy nasyp/droga',lat:50.0329873,lon:19.1141130,score:2,type:'droga/nasyp',
-  why:'Zaznaczony jako kontekst logistyczny, nie jako główny kandydat na schron.',
-  evidence:['LiDAR: długi liniowy nasyp.','Kontekst: może wskazywać dawną drogę dojścia lub zaplecze.','Niepewność: najpewniej infrastruktura, nie schron.'],
-  check:['Użyć jako trasy orientacyjnej.','Sprawdzać odgałęzienia i miejsca, gdzie linia dochodzi do skarpy.']},
- {id:'A10',n:'Mikroanomalia centralna — jasny kopczyk na łące',lat:50.034245,lon:19.113770,score:3,type:'mikrorelief',
-  why:'Wyznaczony jako mała, punktowa nierówność w polu zalewowym, widoczna na zrzutach jako odmienny mikrorelief.',
-  evidence:['LiDAR: lokalny kopczyk/zgrubienie wśród bardziej płaskiej łąki.','Taktyka: leży między przeprawą a południową linią skarpy.','Niepewność: może być kępa roślinności lub naturalny osad.'],
-  check:['Zrobić zdjęcie nisko z boku, żeby pokazać profil.','Sprawdzić czy występuje gruz lub zapadnięcie na szczycie.']},
- {id:'A11',n:'Węzeł śladów polnych na południe od rzeki',lat:50.033970,lon:19.112880,score:3,type:'dojście/zagłębienie',
-  why:'Punkt powstał z analizy komunikacji: stare drogi i dojścia często prowadzą do stanowisk lub obiektów maskowanych.',
-  evidence:['LiDAR: krzyżowanie kilku śladów terenowych.','Taktyka: położenie za główną linią krawędzi mogło służyć jako dojście lub zaplecze.','Niepewność: może być zwykły układ rolniczy.'],
-  check:['Iść śladami dróg i szukać ich zakończeń.','Zwracać uwagę na małe zagłębienia przy skrzyżowaniu.']},
- {id:'A12',n:'Wschodni brzeg — zakończenie ostrej krawędzi',lat:50.034980,lon:19.117620,score:3,type:'krawędź',
-  why:'Wyznaczony, bo końce wałów i krawędzi są typowymi miejscami maskowania małych stanowisk.',
-  evidence:['LiDAR: zakończenie linii krawędziowej.','Taktyka: skrajny punkt sektora wschodniego.','Niepewność: możliwa erozja i regulacja brzegu.'],
-  check:['Sprawdzić samo zakończenie krawędzi i najbliższe 20 m.','Szukać regularnego kopca, cegły lub zapadliska.']},
- {id:'A13',n:'Północny meander — półka nad rzeką',lat:50.035760,lon:19.113950,score:3,type:'punkt obserwacyjny',
-  why:'Zaznaczony jako potencjalny punkt obserwacyjny nad zakolem, skąd można kontrolować ruch przy przeprawie.',
-  evidence:['Geomorfologia: półka nad meandrem.','Taktyka: dobra widoczność na oś rzeki i dojście do mostu.','Niepewność: naturalne podcięcie brzegu może wyglądać jak stanowisko.'],
-  check:['Ocenić widoczność na przeprawę.','Szukaj śladów sztucznego wyrównania lub cegły.']},
- {id:'A14',n:'Zachodni wlot do przeprawy',lat:50.034730,lon:19.111250,score:4,type:'sektor zachodni',
-  why:'Wyznaczony, bo zachodni wlot do przeprawy jest logicznym miejscem blokowania dojścia do mostu.',
-  evidence:['LiDAR: bliskość linii skarpy i dojścia.','Taktyka: kontrola ruchu od zachodu; możliwa pierwsza pozycja obronna.','Kontekst: współgra z A01 i A05 jako układ osłony dojścia.'],
-  check:['Sprawdzić oba boki dawnego dojścia.','Szukać małej ceglanej konstrukcji zakrytej ziemią lub płaskiego zapadliska.']}
+{id:'A1',rank:1,prio:'A',score:93,lat:50.0346042,lon:19.1121551,name:'Południowy brzeg — ostra linia skarpy',r:20,why:'Najmocniejszy kandydat. Punkt leży na sztucznie wyglądającej krawędzi tarasu przy przeprawie. Forma jest liniowa, ostra i równoległa do brzegu, co pasuje do zamaskowanego stanowiska lub schronu wkopanego w stok.',checks:'Szukaj cegły/betonu w skarpie, regularnego narożnika, zasypanego wejścia, nienaturalnego pagórka oraz innej roślinności na małej powierzchni.'},
+{id:'A2',rank:2,prio:'A',score:90,lat:50.0343886,lon:19.1146025,name:'Owalny pagórek przy południowym brzegu',r:20,why:'Zwarta wypukłość na brzegu tarasu zalewowego. Lokalizacja daje logiczne pole obserwacji i ostrzału w stronę przeprawy. Kształt jest zbyt izolowany jak na zwykłą mikroformę rzeczną.',checks:'Obejdź dookoła. Szukaj pierścieniowego nasypu, zapadliska na środku, cegły w norach/korzeniach, fragmentów żelbetu lub starszego gruzu.'},
+{id:'A3',rank:3,prio:'A',score:87,lat:50.0353229,lon:19.1158612,name:'Północny brzeg naprzeciw A2',r:18,why:'Punkt tworzy parę taktyczną z A2 po drugiej stronie rzeki. Taki układ często występuje przy obronie przepraw: jeden obiekt kontroluje dojście, drugi zamyka oś przejścia.',checks:'Sprawdź podłużny garb przy linii drzew oraz wszelkie sztuczne krawędzie skierowane w stronę południowego brzegu.'},
+{id:'A4',rank:4,prio:'A',score:84,lat:50.0338227,lon:19.1151619,name:'Prostokątny ślad z dojściem/groblą',r:16,why:'Najbardziej geometryczny ślad w zestawie. Prostokątna forma plus krótki liniowy dojazd to cechy, które w analizie LiDAR traktuje się jako silnie antropogeniczne.',checks:'Szukaj prostych narożników, fragmentów muru ceglanego, zasypanego otworu i różnicy wysokości kilku–kilkudziesięciu cm.'},
+{id:'A5',rank:5,prio:'A',score:80,lat:50.0349007,lon:19.1130641,name:'Bezpośrednio przy starym moście / przyczółku',r:14,why:'To punkt kontrolny. Nawet jeśli właściwy schron jest przesunięty, przy przeprawie powinny być ślady robót ziemnych, dojazdów, osłon lub zniszczonej infrastruktury.',checks:'Sprawdź przyczółki, narzut kamienny, skarpy, stare drogi dojazdowe i miejsca z nienaturalnym gruzem.'},
+{id:'B1',rank:6,prio:'B',score:74,lat:50.0346042,lon:19.1167003,name:'Wschodni brzeg pod linią drzew',r:14,why:'Kontynuacja tej samej osi terenowej co A2/A3. Punkt mniej czytelny przez roślinność, ale logiczny jako dalszy element linii obrony.',checks:'Sprawdź linię drzew od strony wody. Szukaj niskich garbów, dziur, cegły i nagłej zmiany mikroreliefu.'},
+{id:'B2',rank:7,prio:'B',score:71,lat:50.0354397,lon:19.1106866,name:'Trójkątny nasyp przy północnej drodze',r:14,why:'Forma ziemna przy skrzyżowaniu dawnych dojść. Może być efektem drogowym, ale w kontekście obrony przeprawy mogła pełnić funkcję stanowiska osłonowego.',checks:'Zweryfikuj, czy nasyp ma regularny obrys, gruz w rdzeniu i czy ma widok w stronę mostu.'},
+{id:'B3',rank:8,prio:'B',score:69,lat:50.0341192,lon:19.1096377,name:'Łukowaty wał południowo-zachodni',r:14,why:'Łuk może być naturalnym starorzeczem, ale fragmenty o ostrzejszych narożnikach wyglądają jak wtórnie wykorzystany wał lub osłona ziemna.',checks:'Nie sprawdzaj całego łuku. Skup się na punktach załamania, końcach wału i miejscach gdzie wał styka się z dojściem.'},
+{id:'B4',rank:9,prio:'B',score:66,lat:50.0357800,lon:19.1139600,name:'Północna krawędź pola obserwacji',r:14,why:'Punkt wyznaczony z modelu widoczności: daje kontrolę nad doliną i dojściem do przeprawy. Brak bardzo silnej anomalii, ale pozycja taktyczna jest dobra.',checks:'Sprawdź, czy jest niewielkie wypłaszczenie lub garb maskowany trawą/krzakami.'},
+{id:'B5',rank:10,prio:'B',score:63,lat:50.0336000,lon:19.1129500,name:'Południowe zaplecze przeprawy',r:12,why:'Punkt wskazany jako możliwe zaplecze/stanowisko cofnięte. Nie musi być schronem głównym, ale może dać ślady okopu, rowu łącznikowego lub drogi technicznej.',checks:'Szukaj linii rowu, drobnych prostych krawędzi i układu prowadzącego do A1/A4.'},
+{id:'C1',rank:11,prio:'C',score:55,lat:50.0329873,lon:19.1141130,name:'Długi liniowy nasyp na południu',r:12,why:'Najpewniej infrastruktura lub dawny dojazd, ale może tłumaczyć logistykę budowy/obsługi schronów. Punkt pomocniczy, nie główny kandydat.',checks:'Sprawdź tylko przy okazji: nawierzchnia, cegła, beton, relacja do punktów A.'},
+{id:'C2',rank:12,prio:'C',score:52,lat:50.0350600,lon:19.1174200,name:'Wschodnia kontynuacja linii brzegu',r:12,why:'Kandydat wynikający z ciągłości linii terenowej. Brak silnego sygnału, ale może wskazywać kolejne stanowisko w szeregu.',checks:'Krótki rekonesans wzdłuż krawędzi brzegu, tylko jeśli A2/A3 potwierdzą się w terenie.'},
+{id:'C3',rank:13,prio:'C',score:49,lat:50.0360500,lon:19.1116500,name:'Północno-zachodni węzeł dojść',r:12,why:'Miejsce logiczne komunikacyjnie, ale anomalia terenowa jest słabsza. Może wskazywać ślad drogi, nie schron.',checks:'Szukaj śladów starej drogi wojskowej, nasypu lub rowu prowadzącego do linii rzeki.'},
+{id:'C4',rank:14,prio:'C',score:45,lat:50.0332500,lon:19.1162000,name:'Południowo-wschodnia mikroforma',r:10,why:'Słaby, ale geometryczny sygnał na skraju obszaru analizy. Zachowany jako punkt rezerwowy.',checks:'Sprawdź tylko po punktach A i B.'}
 ];
-function list(items){return '<ul>'+items.map(x=>`<li>${x}</li>`).join('')+'</ul>'}
-function popup(p){return `<div class="pop"><h3>${p.id} — ${p.n}</h3>
-<p><span class="risk r${p.score}">priorytet ${p.score}/5</span> · ${p.type}</p>
-<p><b>WGS84:</b> <code>${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}</code></p>
-<p><b>Dlaczego ten punkt?</b><br>${p.why}</p>
-<p><b>Przesłanki z analizy:</b>${list(p.evidence||[])}</p>
-<p><b>Co sprawdzić w terenie:</b>${list(p.check||[])}</p>
-<p><b>Procedura:</b> zdjęcie szerokie, zdjęcie detalu, waypoint GPS, opis roślinności/gruzu. Bez kopania.</p>
-<p><button onclick="copyText('${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}')">Kopiuj współrzędne</button></p></div>`}
-pts.forEach(p=>{
- const m=L.circleMarker([p.lat,p.lon],{radius:p.score>=5?10:p.score>=4?9:7,color:'#fff',weight:1.5,fillColor:color(p.score),fillOpacity:.95}).bindPopup(popup(p)).bindTooltip(`${p.id}: ${p.n}`);
- const c=L.circle([p.lat,p.lon],{radius:p.score>=4?22:14,color:color(p.score),weight:1,fillColor:color(p.score),fillOpacity:.13});
- (p.score>=3?groupP:groupHelp).addLayer(m); (p.score>=3?groupP:groupHelp).addLayer(c);
-});
-// tactical sectors / route
-L.polyline(pts.filter(p=>['A08','A01','A07','A02','A03','A06','A12','A04','A05','A14'].includes(p.id)).map(p=>[p.lat,p.lon]),{color:'#c084fc',weight:3,opacity:.9}).bindTooltip('Sugerowana pętla terenowa: zacznij od A01/A02/A14/A03').addTo(groupLines);
-L.polyline([[50.0359,19.1102],[50.0346042,19.1121551],[50.0338227,19.1151619],[50.0346042,19.1167003]],{color:'#f97316',weight:2,dashArray:'6 7',opacity:.9}).bindTooltip('Hipotetyczna linia kontroli południowego brzegu').addTo(groupLines);
-L.polyline([[50.0360,19.1162],[50.0353229,19.1158612],[50.0343886,19.1146025],[50.0346042,19.1121551]],{color:'#38bdf8',weight:2,dashArray:'5 6',opacity:.9}).bindTooltip('Sektory krzyżowego sprawdzenia przeprawy').addTo(groupLines);
-L.circle(center,{radius:450,color:'#60a5fa',fill:false,weight:2,dashArray:'8 8'}).bindTooltip('Rdzeń analizy 450 m').addTo(groupLines);
-// grid search cells
-for(let dx=-2; dx<=2; dx++){for(let dy=-2; dy<=2; dy++){let lat=center[0]+dy*0.00135;let lon=center[1]+dx*0.00195;let score=Math.max(0,5-Math.abs(dx)-Math.abs(dy));L.rectangle([[lat-0.00065,lon-0.00095],[lat+0.00065,lon+0.00095]],{color:'#94a3b8',weight:.8,opacity:.35,fillOpacity:score*.018}).bindTooltip(`Komórka skanowania L${score}`).addTo(groupGrid)}}
-overlays['Punkty kandydackie — priorytet 3–5']=groupP; overlays['Punkty pomocnicze — priorytet 2']=groupHelp; overlays['Linie taktyczne / pętla']=groupLines; overlays['Siatka systematycznego obejścia']=groupGrid;
-L.control.layers(base,overlays,{collapsed:false,position:'topright'}).addTo(map);
-map.on('click', e=>{ L.popup().setLatLng(e.latlng).setContent(`<b>Współrzędne</b><br>${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}<br><button onclick="copyText('${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}')">Kopiuj</button>`).openOn(map); });
-document.getElementById('opLidar').oninput=e=>gugikShade.setOpacity(+e.target.value); document.getElementById('opHypso').oninput=e=>gugikHypso.setOpacity(+e.target.value); document.getElementById('opEsriHS').oninput=e=>esriHS.setOpacity(+e.target.value);
-function toggleSide(){const s=document.getElementById('side'); s.style.display=s.style.display==='none'?'block':'none'}
-function copyText(t){navigator.clipboard?.writeText(t)}
-function geojson(){return {type:'FeatureCollection',features:pts.map(p=>({type:'Feature',properties:p,geometry:{type:'Point',coordinates:[p.lon,p.lat]}}))}}
-function dl(name,txt,type='text/plain'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-function downloadGeoJSON(){dl('bunkry_bojszowy_kandydaci.geojson',JSON.stringify(geojson(),null,2),'application/geo+json')}
-function downloadGPX(){let w=pts.map(p=>`<wpt lat="${p.lat}" lon="${p.lon}"><name>${p.id} ${p.n}</name><desc>Priorytet ${p.score}/5. ${p.why}</desc></wpt>`).join('\n');dl('bunkry_bojszowy_kandydaci.gpx',`<?xml version="1.0"?><gpx version="1.1" creator="ChatGPT terrain analysis" xmlns="http://www.topografix.com/GPX/1/1">${w}</gpx>`,'application/gpx+xml')}
-function downloadKML(){let w=pts.map(p=>`<Placemark><name>${p.id} ${p.n}</name><description>Priorytet ${p.score}/5. ${p.why}</description><Point><coordinates>${p.lon},${p.lat},0</coordinates></Point></Placemark>`).join('\n');dl('bunkry_bojszowy_kandydaci.kml',`<?xml version="1.0"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document>${w}</Document></kml>`,'application/vnd.google-earth.kml+xml')}
-</script>
-</body>
-</html>
+const colors={A:'#8b0000',B:'#ff7a00',C:'#4374b3'};
+const map=L.map('map',{center:center,zoom:17,preferCanvas:true});
+const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'OSM'});
+const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri/Maxar'}).addTo(map);
+const esriHill=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',{opacity:.65,maxZoom:18,attribution:'Esri Hillshade'});
+const nmt=L.tileLayer.wms('https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/ShadedRelief',{layers:'Raster',format:'image/png',transparent:true,opacity:.72,version:'1.1.1',attribution:'GUGiK NMT'}).addTo(map);
+const hipso=L.tileLayer.wms('https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/Hypsometry',{layers:'ISOK_HipsoDyn',format:'image/png',transparent:true,opacity:.45,version:'1.1.1',attribution:'GUGiK hipsometria'});
+const gA=L.layerGroup(),gB=L.layerGroup(),gC=L.layerGroup();
+function popup(p){return `<div class="popup"><h3>${p.id} — ${p.name}</h3><div class="score">Priorytet ${p.prio}, wynik ${p.score}/100, ranga #${p.rank}</div><div class="small">WGS84: ${p.lat.toFixed(7)}, ${p.lon.toFixed(7)} | promień kontroli: ${p.r} m</div><hr><b>Dlaczego został wyznaczony:</b><br>${p.why}<br><br><b>Co sprawdzić w terenie:</b><br>${p.checks}<br><br><b>Interpretacja:</b> kandydat po analizie form terenowych i logiki obrony przeprawy, nie potwierdzenie zabytku.</div>`}
+pts.forEach(p=>{let grp=p.prio==='A'?gA:p.prio==='B'?gB:gC;L.circle([p.lat,p.lon],{radius:p.r,color:colors[p.prio],fillColor:colors[p.prio],fillOpacity:.18,weight:2}).addTo(grp);L.circleMarker([p.lat,p.lon],{radius:p.prio==='A'?9:7,color:'#fff',weight:2,fillColor:colors[p.prio],fillOpacity:1}).bindPopup(popup(p)).bindTooltip(`${p.id} #${p.rank} — ${p.score}/100`).addTo(grp);});
+gA.addTo(map);gB.addTo(map);gC.addTo(map);
+L.circle(center,{radius:450,color:'#111',dashArray:'6,6',fill:false,weight:1}).addTo(map).bindTooltip('Obszar głównej analizy 450 m');
+L.polyline(pts.filter(p=>p.prio==='A').map(p=>[p.lat,p.lon]),{color:'#8b0000',weight:3,opacity:.75}).addTo(map).bindTooltip('Oś kontroli przeprawy — punkty A');
+L.control.layers({'Satelita Esri':sat,'OSM':osm},{'Geoportal NMT 1 m — cieniowanie':nmt,'Geoportal hipsometria':hipso,'Szybki Esri Hillshade':esriHill,'Priorytet A':gA,'Priorytet B':gB,'Kontekst C':gC},{collapsed:false}).addTo(map);
+L.control.scale().addTo(map);
+function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:type}));a.download=name;a.click();}
+function downloadCSV(){dl('bojszowy_typowanie_schronow.csv','id,rank,priority,score,lat,lon,name\n'+pts.map(p=>`${p.id},${p.rank},${p.prio},${p.score},${p.lat},${p.lon},"${p.name}"`).join('\n'),'text/csv')}
+function downloadGPX(){dl('bojszowy_typowanie_schronow.gpx','<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="ChatGPT-GIS">'+pts.map(p=>`<wpt lat="${p.lat}" lon="${p.lon}"><name>${p.id} ${p.score}/100</name><desc>${p.name}. ${p.why}</desc></wpt>`).join('')+'</gpx>','application/gpx+xml')}
+function downloadKML(){dl('bojszowy_typowanie_schronow.kml','<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document>'+pts.map(p=>`<Placemark><name>${p.id} ${p.score}/100</name><description><![CDATA[${p.name}<br>${p.why}<br>${p.checks}]]></description><Point><coordinates>${p.lon},${p.lat},0</coordinates></Point></Placemark>`).join('')+'</Document></kml>','application/vnd.google-earth.kml+xml')}
+</script></body></html>
