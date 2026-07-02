@@ -9,6 +9,6 @@
 // automatycznie. Center/zoom to pozycja awaryjna.
 
 window.APP_CONFIG = {
-center: [50.66, 21.85],   // ← PODMIEŃ na dokładne lat, lng swojego terenu
-zoom:   15
+  center: [50.66, 21.85],   // ← PODMIEŃ na dokładne lat, lng swojego terenu
+  zoom:   15
 };

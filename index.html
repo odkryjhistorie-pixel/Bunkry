@@ -1,334 +1,375 @@
 <!DOCTYPE html>
-
 <html lang="pl">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Analiza terenu · LiDAR · potencjalne obiekty podziemne</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#12140f" />
+<title>Rekonesans LiDAR — Kolonia Wola</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
   :root{
-    --ink:#12140f;
-    --paper:#e8e4d8;
-    --moss:#3d5a3a;
-    --moss-bright:#6b8f52;
-    --clay:#b5533a;
-    --amber:#d99a2b;
-    --line:rgba(18,20,15,.14);
-    --panel:#f3f0e6;
+    --ink:#14160f;
+    --bg:#0f1109;
+    --panel:#1a1d14;
+    --panel-2:#22261a;
+    --edge:rgba(255,255,255,.09);
+    --edge-soft:rgba(255,255,255,.055);
+    --txt:#e8e6dc;
+    --txt-dim:#9aa08c;
+    --txt-faint:#6c7160;
+    --moss:#8fae5f;
+    --amber:#e0a52e;
+    --clay:#d1603f;
+    --steel:#5b8bc4;
+    --safe-b:env(safe-area-inset-bottom,0px);
+    --safe-t:env(safe-area-inset-top,0px);
   }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;overscroll-behavior:none}
   body{
-    font-family:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
-    color:var(--ink);
-    background:var(--paper);
+    font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:var(--bg);color:var(--txt);
     -webkit-font-smoothing:antialiased;
   }
-  #map{position:absolute;inset:0;z-index:1;background:#1a1c16}
+  #map{position:fixed;inset:0;z-index:1;background:#0f1109}
 
-/* — panel — */
-.panel{
-position:absolute;z-index:1000;top:14px;left:14px;
-width:min(360px,calc(100vw - 28px));
-max-height:calc(100vh - 28px);
-display:flex;flex-direction:column;
-background:var(–panel);
-border:1px solid var(–line);
-border-radius:2px;
-box-shadow:0 18px 40px -18px rgba(18,20,15,.5);
-overflow:hidden;
-}
-.panel__head{
-padding:16px 18px 14px;
-border-bottom:1px solid var(–line);
-background:
-linear-gradient(180deg, rgba(61,90,58,.10), transparent);
-}
-.eyebrow{
-font-size:10px;letter-spacing:.28em;text-transform:uppercase;
-color:var(–moss);margin:0 0 8px;font-weight:600;
-}
-h1{
-font-family:Georgia,“Times New Roman”,serif;
-font-size:21px;line-height:1.12;margin:0;font-weight:600;
-letter-spacing:-.01em;
-}
-h1 em{font-style:italic;color:var(–clay)}
-.sub{margin:8px 0 0;font-size:11.5px;line-height:1.5;color:#4a4d40}
+  /* ── górny pasek ── */
+  .topbar{
+    position:fixed;z-index:1200;top:0;left:0;right:0;
+    padding:calc(var(--safe-t) + 10px) 14px 10px;
+    display:flex;align-items:center;gap:10px;
+    background:linear-gradient(180deg, rgba(15,17,9,.92), rgba(15,17,9,0));
+    pointer-events:none;
+  }
+  .brand{pointer-events:auto}
+  .brand .eyebrow{
+    font-size:9px;letter-spacing:.26em;text-transform:uppercase;
+    color:var(--moss);margin:0 0 2px;font-weight:600;
+  }
+  .brand h1{
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:16px;line-height:1;margin:0;font-weight:600;color:var(--txt);
+    letter-spacing:.01em;
+  }
+  .brand h1 em{font-style:italic;color:var(--amber);font-weight:600}
 
-.panel__body{overflow-y:auto;padding:4px 0 8px}
+  /* ── kontrolki zoom (własne, bo domyślne kolidują z paskiem) ── */
+  .zoomctl{
+    position:fixed;z-index:1150;right:12px;top:calc(var(--safe-t) + 64px);
+    display:flex;flex-direction:column;
+    border:1px solid var(--edge);border-radius:10px;overflow:hidden;
+    background:rgba(26,29,20,.9);backdrop-filter:blur(8px);
+  }
+  .zoomctl button{
+    width:42px;height:42px;border:none;background:transparent;color:var(--txt);
+    font-size:22px;line-height:1;cursor:pointer;font-family:inherit;
+  }
+  .zoomctl button:active{background:var(--panel-2)}
+  .zoomctl button+button{border-top:1px solid var(--edge)}
 
-details{border-bottom:1px solid var(–line)}
-summary{
-list-style:none;cursor:pointer;
-padding:12px 18px;
-display:flex;align-items:center;gap:10px;
-font-size:11px;letter-spacing:.16em;text-transform:uppercase;
-font-weight:600;color:var(–ink);
-user-select:none;
-}
-summary::-webkit-details-marker{display:none}
-summary .tick{
-font-family:Georgia,serif;font-size:13px;color:var(–moss);
-transition:transform .2s ease;
-}
-details[open] summary .tick{transform:rotate(90deg)}
-.det-body{padding:0 18px 16px;font-size:12px;line-height:1.62;color:#3c3f34}
-.det-body p{margin:0 0 10px}
-.det-body ul{margin:0 0 10px;padding-left:16px}
-.det-body li{margin:0 0 6px}
-.det-body b{color:var(–ink)}
+  /* ── legenda pływająca (zawsze widoczna, mała) ── */
+  .legend{
+    position:fixed;z-index:1150;left:12px;top:calc(var(--safe-t) + 64px);
+    background:rgba(26,29,20,.9);backdrop-filter:blur(8px);
+    border:1px solid var(--edge);border-radius:10px;
+    padding:9px 11px;display:flex;flex-direction:column;gap:6px;
+    font-size:10px;color:var(--txt-dim);
+  }
+  .legend .row{display:flex;align-items:center;gap:7px;white-space:nowrap}
+  .legend .d{width:9px;height:9px;border-radius:50%;flex:0 0 auto;border:1.5px solid #0f1109}
 
-/* layer toggles */
-.layers{padding:6px 18px 14px}
-.layer{
-display:flex;align-items:center;gap:11px;
-padding:9px 0;border-bottom:1px dotted var(–line);
-}
-.layer:last-child{border-bottom:none}
-.swatch{width:26px;height:26px;border-radius:2px;flex:0 0 auto;border:1px solid var(–line)}
-.sw-relief{background:linear-gradient(135deg,#2b2b2b,#e0e0e0)}
-.sw-hyps{background:linear-gradient(135deg,#1a4a2e,#e8d84a 55%,#a8451f)}
-.sw-ortho{background:linear-gradient(135deg,#3a5a2a,#6b7a4a)}
-.sw-slope{background:linear-gradient(135deg,#fff,#000)}
-.layer .lab{flex:1;min-width:0}
-.layer .lab b{display:block;font-size:12px;letter-spacing:.02em}
-.layer .lab span{display:block;font-size:10px;color:#6a6d5e;margin-top:1px}
-.sw-toggle{
-position:relative;width:38px;height:20px;flex:0 0 auto;
-border:1px solid var(–line);border-radius:20px;background:#d9d5c7;
-cursor:pointer;transition:background .18s ease;
-}
-.sw-toggle::after{
-content:””;position:absolute;top:1px;left:1px;width:16px;height:16px;
-background:var(–paper);border-radius:50%;
-box-shadow:0 1px 2px rgba(0,0,0,.3);
-transition:transform .18s ease;
-}
-.sw-toggle.on{background:var(–moss)}
-.sw-toggle.on::after{transform:translateX(18px)}
-.opacity{padding:2px 0 0}
-.opacity input{width:100%;accent-color:var(–moss)}
-.opacity label{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#8a8d7e}
+  /* ── bottom sheet ── */
+  .sheet{
+    position:fixed;z-index:1300;left:0;right:0;bottom:0;
+    background:var(--panel);
+    border-top:1px solid var(--edge);
+    border-radius:18px 18px 0 0;
+    box-shadow:0 -12px 40px -12px rgba(0,0,0,.7);
+    transform:translateY(calc(100% - var(--peek)));
+    transition:transform .32s cubic-bezier(.4,.0,.2,1);
+    --peek:64px;
+    max-height:82vh;display:flex;flex-direction:column;
+    touch-action:none;
+  }
+  .sheet.open{transform:translateY(0)}
+  .grip{
+    padding:9px 0 5px;display:flex;flex-direction:column;align-items:center;gap:8px;
+    cursor:grab;flex:0 0 auto;
+  }
+  .grip .bar{width:36px;height:4px;border-radius:4px;background:var(--txt-faint)}
+  .grip .hint{
+    font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--txt-dim);
+    display:flex;align-items:center;gap:8px;
+  }
+  .grip .hint .chev{color:var(--moss);transition:transform .3s ease}
+  .sheet.open .grip .hint .chev{transform:rotate(180deg)}
 
-/* legend for typology */
-.key{display:flex;gap:8px;align-items:flex-start;margin:0 0 10px}
-.key .dot{width:14px;height:14px;border-radius:50%;flex:0 0 auto;margin-top:2px;border:2px solid #fff;box-shadow:0 0 0 1px var(–line)}
-.key p{margin:0;font-size:11px;line-height:1.45}
+  .sheet__scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:4px 0 calc(var(--safe-b) + 16px)}
 
-.foot{padding:12px 18px 16px;font-size:10px;line-height:1.5;color:#7a7d6e;border-top:1px solid var(–line)}
-.foot code{background:#e0dccf;padding:1px 4px;border-radius:2px;font-size:9.5px}
+  /* ── warstwy ── */
+  .sec-label{
+    font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--txt-faint);padding:14px 18px 8px;font-weight:600;
+  }
+  .layer{
+    display:flex;align-items:center;gap:12px;
+    padding:11px 18px;
+  }
+  .layer .sw{width:30px;height:30px;border-radius:7px;flex:0 0 auto;
+    border:1px solid var(--edge)}
+  .sw-relief{background:linear-gradient(135deg,#0e0e0e,#8f8f8f 55%,#fafafa)}
+  .sw-slope{background:linear-gradient(135deg,#1a4a2e,#e8d84a 55%,#c0392b)}
+  .sw-ortho{background:linear-gradient(135deg,#2e4420,#5a6b3a)}
+  .layer .lab{flex:1;min-width:0}
+  .layer .lab b{display:block;font-size:13px;color:var(--txt);letter-spacing:.01em}
+  .layer .lab span{display:block;font-size:10px;color:var(--txt-faint);margin-top:2px}
+  .toggle{
+    position:relative;width:44px;height:26px;flex:0 0 auto;border-radius:26px;
+    background:#33382a;border:1px solid var(--edge);cursor:pointer;
+    transition:background .18s ease;
+  }
+  .toggle::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;
+    border-radius:50%;background:#c9ccbe;transition:transform .18s ease}
+  .toggle.on{background:var(--moss)}
+  .toggle.on::after{transform:translateX(18px);background:#fff}
 
-/* popup */
-.leaflet-popup-content-wrapper{border-radius:2px;font-family:inherit}
-.leaflet-popup-content{margin:12px 14px;font-size:12px;line-height:1.5}
-.pin-title{font-family:Georgia,serif;font-size:14px;font-weight:600;margin:0 0 6px}
-.pin-tag{display:inline-block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;
-padding:2px 7px;border-radius:2px;margin-bottom:7px;color:#fff}
-.pin-conf{font-size:10px;color:#777;margin-top:8px;letter-spacing:.06em}
+  .op{padding:2px 18px 12px;display:flex;align-items:center;gap:12px}
+  .op label{font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--txt-faint);width:66px;flex:0 0 auto}
+  .op input{flex:1;accent-color:var(--moss);height:24px}
 
-.attribution-note{position:absolute;z-index:1000;bottom:6px;right:8px;
-font-size:9px;color:#cfd0c4;background:rgba(18,20,15,.55);
-padding:3px 7px;border-radius:2px;letter-spacing:.04em}
+  .divider{height:1px;background:var(--edge-soft);margin:6px 18px}
 
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  /* ── akordeon wiedzy ── */
+  details{border-top:1px solid var(--edge-soft)}
+  details:first-of-type{border-top:none}
+  summary{list-style:none;cursor:pointer;padding:14px 18px;
+    display:flex;align-items:center;gap:10px;
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    font-weight:600;color:var(--txt)}
+  summary::-webkit-details-marker{display:none}
+  summary .t{font-family:Georgia,serif;color:var(--moss);transition:transform .2s ease}
+  details[open] summary .t{transform:rotate(90deg)}
+  .db{padding:0 18px 16px;font-size:12.5px;line-height:1.62;color:var(--txt-dim)}
+  .db p{margin:0 0 10px}
+  .db ul{margin:0 0 10px;padding-left:16px}
+  .db li{margin:0 0 7px}
+  .db b{color:var(--txt)}
+  .db code{background:var(--panel-2);color:var(--moss);padding:1px 5px;border-radius:4px;font-size:11px}
+
+  /* ── popup ── */
+  .leaflet-popup-content-wrapper{background:var(--panel);color:var(--txt);
+    border:1px solid var(--edge);border-radius:12px;font-family:inherit}
+  .leaflet-popup-tip{background:var(--panel);border:1px solid var(--edge)}
+  .leaflet-popup-content{margin:13px 15px;font-size:12.5px;line-height:1.55}
+  .leaflet-container a.leaflet-popup-close-button{color:var(--txt-dim)}
+  .pin-tag{display:inline-block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+    padding:3px 8px;border-radius:5px;margin-bottom:8px;color:#12140f;font-weight:600}
+  .pin-title{font-family:Georgia,serif;font-size:15px;font-weight:600;margin:0 0 7px;color:var(--txt)}
+  .pin-why{color:var(--txt-dim)}
+  .pin-conf{font-size:10px;color:var(--txt-faint);margin-top:9px;letter-spacing:.05em}
+
+  .leaflet-control-attribution{background:rgba(15,17,9,.7)!important;color:#8a8f7c!important;font-size:9px!important}
+  .leaflet-control-attribution a{color:#aab095!important}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  @media (min-width:720px){
+    .sheet{left:auto;right:14px;bottom:14px;width:380px;border-radius:16px;border:1px solid var(--edge);--peek:56px}
+    .sheet:not(.open){transform:translateY(calc(100% - var(--peek)))}
+  }
 </style>
-
 </head>
 <body>
 <div id="map"></div>
-<div class="attribution-note">relief/hipsometria: WMS GUGiK Geoportal · ortofoto: Esri</div>
 
-<div class="panel">
-  <div class="panel__head">
-    <p class="eyebrow">Analiza rzeźby terenu · ALS/LiDAR</p>
-    <h1>Rozpoznanie <em>obiektów podziemnych</em><br>Kolonia Wola</h1>
-    <p class="sub">Warstwy cieniowanego reliefu i hipsometrii z lotniczego skaningu laserowego (Geoportal GUGiK) na tle ortofotomapy. Przełączaj warstwy i szukaj geometrycznych anomalii, których nie widać na zdjęciu lotniczym.</p>
-  </div>
-
-  <div class="panel__body">
-
-```
-<!-- WARSTWY -->
-<div class="layers">
-  <div class="layer">
-    <div class="swatch sw-relief"></div>
-    <div class="lab"><b>Cieniowany relief (NMT)</b><span>ShadedRelief · GRID1 · 1 m</span></div>
-    <div class="sw-toggle on" data-layer="relief"></div>
-  </div>
-  <div class="opacity"><label>krycie reliefu</label>
-    <input type="range" min="0" max="100" value="80" data-op="relief"></div>
-
-  <div class="layer">
-    <div class="swatch sw-hyps"></div>
-    <div class="lab"><b>Hipsometria (barwy wys.)</b><span>ISOK · odcienie wysokości</span></div>
-    <div class="sw-toggle" data-layer="hyps"></div>
-  </div>
-  <div class="opacity"><label>krycie hipsometrii</label>
-    <input type="range" min="0" max="100" value="55" data-op="hyps"></div>
-
-  <div class="layer">
-    <div class="swatch sw-ortho"></div>
-    <div class="lab"><b>Ortofotomapa (podkład)</b><span>satelita / zdjęcie lotnicze</span></div>
-    <div class="sw-toggle on" data-layer="ortho"></div>
+<div class="topbar">
+  <div class="brand">
+    <p class="eyebrow">Rekonesans terenu · ALS / LiDAR</p>
+    <h1>Obiekty <em>podziemne</em> — Kolonia Wola</h1>
   </div>
 </div>
 
-<!-- CO SZUKAMY -->
-<details open>
-  <summary><span class="tick">›</span> Jak czytać teren</summary>
-  <div class="det-body">
-    <p>Bunkry i schrony wchodzą w rzeźbę jako <b>regularna geometria</b>, której natura nie tworzy. Na cieniowanym reliefie szukaj:</p>
-    <ul>
-      <li><b>Prostokątów i linii prostych</b> — nasypy, stropy, ściany oporowe. Przyroda nie robi kątów prostych.</li>
-      <li><b>Regularnych zagłębień</b> — zapadnięte stropy, wejścia, szyby wentylacyjne (ciemne, ostro obrysowane doły).</li>
-      <li><b>Nasypów maskujących</b> — kopce o zbyt równych bokach nad komorami.</li>
-      <li><b>Dróg dojazdowych</b> — proste wcięcia/nasypy urywające się „w nigdzie” w lesie prowadzą do wejść.</li>
-      <li><b>Wałów ziemnych i fos</b> — obwałowania wokół obiektu.</li>
-      <li><b>Powtarzalności</b> — obiekty wojskowe budowano seryjnie; jeden wzór powtórzony w rzędzie to silny sygnał.</li>
-    </ul>
-    <p>Porównaj warstwy: co jest <b>niewidoczne na ortofoto</b> (bo pod koronami drzew), a <b>wyraźne na reliefie</b> — to najlepsi kandydaci.</p>
-  </div>
-</details>
+<div class="zoomctl">
+  <button id="zin" aria-label="Przybliż">+</button>
+  <button id="zout" aria-label="Oddal">−</button>
+</div>
 
-<!-- METODA -->
-<details>
-  <summary><span class="tick">›</span> Metoda (archeologia)</summary>
-  <div class="det-body">
-    <p>Standardowy warsztat detekcji na danych ALS:</p>
-    <ul>
-      <li><b>Bare-earth / NMT</b> — model po usunięciu roślinności; odsłania grunt pod lasem.</li>
-      <li><b>Hillshade</b> — cieniowanie z kierunkowym światłem uwypukla mikrorzeźbę. Oglądaj przy różnym azymucie słońca (obróć mapę myślowo), bo światło z jednego kierunku gubi obiekty równoległe do promieni.</li>
-      <li><b>Hipsometria / spadki</b> — barwy wysokości i mapa spadków pokazują skarpy i krawędzie, które w cieniu giną.</li>
-      <li><b>Kontekst przestrzenny</b> — nie pojedynczy dołek, lecz układ: obiekt + droga + wał + drugi obiekt.</li>
-    </ul>
-    <p>Zasada: <b>anomalia to hipoteza, nie dowód.</b> Punkt z mapy = miejsce do weryfikacji w terenie, nie potwierdzony bunkier.</p>
-  </div>
-</details>
+<div class="legend">
+  <div class="row"><span class="d" style="background:#d1603f"></span>Potwierdzony</div>
+  <div class="row"><span class="d" style="background:#e0a52e"></span>Wysoki priorytet</div>
+  <div class="row"><span class="d" style="background:#8fae5f"></span>Do sprawdzenia</div>
+  <div class="row"><span class="d" style="background:#5b8bc4"></span>Kontekst</div>
+</div>
 
-<!-- LEGENDA PUNKTOW -->
-<details open>
-  <summary><span class="tick">›</span> Typy punktów</summary>
-  <div class="det-body">
-    <div class="key"><span class="dot" style="background:#b5533a"></span>
-      <p><b>Potwierdzony</b> — znaleziony przez Ciebie fragment obiektu.</p></div>
-    <div class="key"><span class="dot" style="background:#d99a2b"></span>
-      <p><b>Wysoki priorytet</b> — silna geometryczna anomalia na reliefie.</p></div>
-    <div class="key"><span class="dot" style="background:#6b8f52"></span>
-      <p><b>Do sprawdzenia</b> — słabszy lub niejednoznaczny sygnał.</p></div>
-    <div class="key"><span class="dot" style="background:#4a6fa5"></span>
-      <p><b>Kontekst</b> — droga dojazdowa, wał, oś układu.</p></div>
-    <p style="margin-top:4px">Obwiedziony obszar = Twój teren zainteresowania z pierwszego zdjęcia.</p>
-  </div>
-</details>
-```
-
+<div class="sheet" id="sheet">
+  <div class="grip" id="grip">
+    <div class="bar"></div>
+    <div class="hint"><span class="chev">▲</span> Warstwy i przewodnik <span class="chev">▲</span></div>
   </div>
 
-  <div class="foot">
-    Punkty wczytywane z <code>points.geojson</code> — edytuj ten plik, żeby dodać/przesunąć obiekty po obejrzeniu reliefu. Współrzędne startowe mapy ustaw w <code>config.js</code>.
+  <div class="sheet__scroll">
+    <div class="sec-label">Warstwy mapy</div>
+
+    <div class="layer">
+      <div class="sw sw-relief"></div>
+      <div class="lab"><b>Cieniowany relief NMT</b><span>LiDAR bare-earth · GUGiK · 1 m</span></div>
+      <div class="toggle on" data-layer="relief"></div>
+    </div>
+    <div class="op"><label>Krycie</label><input type="range" min="0" max="100" value="100" data-op="relief"></div>
+
+    <div class="layer">
+      <div class="sw sw-slope"></div>
+      <div class="lab"><b>Mapa spadków / hipsometria</b><span>krawędzie i skarpy terenu</span></div>
+      <div class="toggle" data-layer="slope"></div>
+    </div>
+    <div class="op"><label>Krycie</label><input type="range" min="0" max="100" value="65" data-op="slope"></div>
+
+    <div class="divider"></div>
+
+    <div class="layer">
+      <div class="sw sw-ortho"></div>
+      <div class="lab"><b>Ortofotomapa</b><span>zdjęcie lotnicze (podkład)</span></div>
+      <div class="toggle on" data-layer="ortho"></div>
+    </div>
+    <div class="op"><label>Krycie</label><input type="range" min="0" max="100" value="100" data-op="ortho"></div>
+
+    <details open>
+      <summary><span class="t">›</span> Jak czytać teren</summary>
+      <div class="db">
+        <p>Natura nie robi kątów prostych — inżynieria tak. Na cieniowanym reliefie szukaj:</p>
+        <ul>
+          <li><b>Prostokątów i linii prostych</b> — nasypy, stropy, ściany.</li>
+          <li><b>Regularnych dołów</b> — zapadnięte stropy, szyby, wejścia.</li>
+          <li><b>Zbyt równych kopców</b> — nasypy maskujące nad komorami.</li>
+          <li><b>Prostych wcięć urywających się w lesie</b> — drogi do wejść.</li>
+          <li><b>Powtarzalności</b> — obiekty wojskowe budowano seryjnie.</li>
+        </ul>
+        <p>Najlepszy trop: <b>niewidoczne na ortofoto, wyraźne na reliefie.</b> Przyciemnij ortofoto suwakiem, żeby odsłonić grunt pod lasem.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span class="t">›</span> Metoda archeologiczna</summary>
+      <div class="db">
+        <p>Warsztat detekcji na danych ALS: model bare-earth (grunt bez roślinności) → cieniowanie z kierunkowym światłem → analiza spadków i krawędzi → interpretacja w kontekście przestrzennym (obiekt + droga + wał).</p>
+        <p>Zasada: <b>anomalia to hipoteza, nie dowód.</b> Punkt na mapie = miejsce do weryfikacji w terenie.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span class="t">›</span> Edycja punktów</summary>
+      <div class="db">
+        <p>Punkty wczytują się z pliku <code>points.geojson</code>. Dodaj obiekt: skopiuj współrzędne z Google Maps i wklej jako <code>[lng, lat]</code> (uwaga — odwrotna kolejność!). Pełna instrukcja w <code>README.md</code>.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span class="t">›</span> Bezpieczeństwo i prawo</summary>
+      <div class="db">
+        <p>Wejścia do nieznanych obiektów podziemnych bywają groźne (zawały, brak tlenu, niewybuchy) — nie wchodź sam. W Polsce eksploracja zabytków często wymaga zgody konserwatora; sprawdź status terenu przed wyjściem.</p>
+      </div>
+    </details>
   </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script src="config.js"></script>
-
 <script>
 (function(){
-  const C = window.APP_CONFIG;
+  const C = (window.APP_CONFIG||{center:[50.66,21.85],zoom:15});
 
-  const map = L.map('map',{zoomControl:true,attributionControl:false})
+  const map = L.map('map',{zoomControl:false,attributionControl:true})
     .setView(C.center, C.zoom);
+  map.attributionControl.setPrefix(false);
 
-  // --- PODKLAD: ortofoto ---
+  // podkład
   const ortho = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    {maxZoom:20, maxNativeZoom:18}
+    {maxZoom:20,maxNativeZoom:18,attribution:'Ortofoto: Esri'}
   ).addTo(map);
 
-  // --- LiDAR: cieniowany relief NMT (GUGiK WMS) ---
+  // LiDAR — cieniowany relief (nazwa warstwy = ShadedRelief, wersja 1.1.1)
   const relief = L.tileLayer.wms(
     'https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/ShadedRelief',
-    {layers:'Raster', format:'image/png', transparent:true,
-     version:'1.3.0', crs:L.CRS.EPSG3857, maxZoom:20, opacity:0.80}
+    {layers:'ShadedRelief',format:'image/png',transparent:true,
+     version:'1.1.1',maxZoom:20,opacity:1,attribution:'NMT: GUGiK'}
   ).addTo(map);
+  relief.bringToFront();
 
-  // --- LiDAR: hipsometria (barwy wysokosci) ---
-  const hyps = L.tileLayer.wms(
-    'https://mapy.geoportal.gov.pl/wss/service/PZGIK/ISOK/WMS/Hillshade',
-    {layers:'Raster', format:'image/png', transparent:true,
-     version:'1.3.0', crs:L.CRS.EPSG3857, maxZoom:20, opacity:0.55}
+  // LiDAR — spadki / hipsometria (usługa ISOK cieniowania krawędzi)
+  const slope = L.tileLayer.wms(
+    'https://mapy.geoportal.gov.pl/wss/service/PZGIK/ISOK/WMS/Slope',
+    {layers:'Slope',format:'image/png',transparent:true,
+     version:'1.1.1',maxZoom:20,opacity:0.65,attribution:'ISOK: GUGiK'}
   );
 
-  const registry = {ortho, relief, hyps};
+  const reg={ortho,relief,slope};
 
-  // toggles
-  document.querySelectorAll('.sw-toggle').forEach(t=>{
+  function setLayer(key,on){
+    const l=reg[key];
+    if(on){ l.addTo(map); if(key!=='ortho') l.bringToFront(); }
+    else map.removeLayer(l);
+  }
+
+  document.querySelectorAll('.toggle').forEach(t=>{
     t.addEventListener('click',()=>{
-      const key=t.dataset.layer, lyr=registry[key];
-      if(map.hasLayer(lyr)){map.removeLayer(lyr);t.classList.remove('on');}
-      else{lyr.addTo(lyr===ortho?map:map);t.classList.add('on');
-           if(key!=='ortho') lyr.bringToFront();}
+      const on=!t.classList.contains('on');
+      t.classList.toggle('on',on);
+      setLayer(t.dataset.layer,on);
     });
   });
-  // opacity sliders
   document.querySelectorAll('[data-op]').forEach(s=>{
-    s.addEventListener('input',()=>{registry[s.dataset.op].setOpacity(s.value/100);});
+    s.addEventListener('input',()=>reg[s.dataset.op].setOpacity(s.value/100));
   });
 
-  // --- kolory typow ---
-  const COLORS = {
-    confirmed:'#b5533a', high:'#d99a2b', check:'#6b8f52', context:'#4a6fa5'
-  };
-  const TAGLABEL = {
-    confirmed:'Potwierdzony', high:'Wysoki priorytet',
-    check:'Do sprawdzenia', context:'Kontekst'
-  };
+  document.getElementById('zin').onclick=()=>map.zoomIn();
+  document.getElementById('zout').onclick=()=>map.zoomOut();
 
-  function markerFor(feature, latlng){
-    const t = feature.properties.type || 'check';
-    const col = COLORS[t] || COLORS.check;
-    return L.circleMarker(latlng,{
-      radius:8, color:'#fff', weight:2, fillColor:col, fillOpacity:0.95
-    });
+  // ── bottom sheet: tap grip + drag ──
+  const sheet=document.getElementById('sheet'), grip=document.getElementById('grip');
+  let open=false;
+  function setOpen(v){open=v;sheet.classList.toggle('open',v);}
+  grip.addEventListener('click',()=>setOpen(!open));
+  // swipe
+  let sy=null;
+  grip.addEventListener('touchstart',e=>{sy=e.touches[0].clientY;},{passive:true});
+  grip.addEventListener('touchmove',e=>{
+    if(sy===null)return;const dy=e.touches[0].clientY-sy;
+    if(dy<-30){setOpen(true);sy=null;}else if(dy>30){setOpen(false);sy=null;}
+  },{passive:true});
+
+  // ── punkty ──
+  const COL={confirmed:'#d1603f',high:'#e0a52e',check:'#8fae5f',context:'#5b8bc4'};
+  const LAB={confirmed:'Potwierdzony',high:'Wysoki priorytet',check:'Do sprawdzenia',context:'Kontekst'};
+
+  function mk(f,ll){
+    const t=f.properties.type||'check';
+    return L.circleMarker(ll,{radius:9,color:'#0f1109',weight:2.5,
+      fillColor:COL[t]||COL.check,fillOpacity:.95});
   }
-  function popupFor(feature, layer){
-    const p = feature.properties||{};
-    const t = p.type||'check';
-    const col = COLORS[t]||COLORS.check;
-    let html = '';
-    if(p.tag_hidden!==true){
-      html += '<span class="pin-tag" style="background:'+col+'">'+(TAGLABEL[t]||'')+'</span>';
-    }
-    html += '<div class="pin-title">'+(p.name||'Punkt')+'</div>';
-    if(p.why) html += '<div>'+p.why+'</div>';
-    if(p.confidence) html += '<div class="pin-conf">Pewność: '+p.confidence+'</div>';
-    layer.bindPopup(html);
+  function pop(f,layer){
+    const p=f.properties||{},t=p.type||'check',c=COL[t]||COL.check;
+    let h='';
+    if(p.tag_hidden!==true) h+='<span class="pin-tag" style="background:'+c+'">'+(LAB[t]||'')+'</span>';
+    h+='<div class="pin-title">'+(p.name||'Punkt')+'</div>';
+    if(p.why)h+='<div class="pin-why">'+p.why+'</div>';
+    if(p.confidence)h+='<div class="pin-conf">Pewność: '+p.confidence+'</div>';
+    layer.bindPopup(h);
   }
 
-  // --- wczytaj punkty ---
-  fetch('points.geojson')
-    .then(r=>r.json())
-    .then(gj=>{
-      const layer = L.geoJSON(gj,{
-        pointToLayer:markerFor,
-        onEachFeature:popupFor,
-        style:function(f){
-          // dla obszaru (Polygon) i linii
-          const t=f.properties&&f.properties.type;
-          if(t==='area') return {color:'#b5533a',weight:3,fillOpacity:0.05,dashArray:'6 5'};
-          if(t==='context') return {color:'#4a6fa5',weight:3,dashArray:'2 6'};
-          return {color:'#d99a2b',weight:2};
-        }
-      }).addTo(map);
-      try{ map.fitBounds(layer.getBounds().pad(0.25)); }catch(e){}
-    })
-    .catch(e=>console.warn('points.geojson nie wczytany:',e));
+  fetch('points.geojson').then(r=>r.json()).then(gj=>{
+    const layer=L.geoJSON(gj,{
+      pointToLayer:mk,onEachFeature:pop,
+      style:f=>{const t=f.properties&&f.properties.type;
+        if(t==='area')return{color:'#d1603f',weight:2.5,fillOpacity:.06,dashArray:'7 6'};
+        if(t==='context')return{color:'#5b8bc4',weight:3,dashArray:'2 7'};
+        return{color:'#e0a52e',weight:2};}
+    }).addTo(map);
+    try{map.fitBounds(layer.getBounds().pad(.25));}catch(e){}
+  }).catch(e=>console.warn('points.geojson:',e));
 })();
 </script>
-
 </body>
 </html>
