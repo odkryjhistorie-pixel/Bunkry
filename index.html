@@ -1,52 +1,334 @@
 <!DOCTYPE html>
-<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Bojszowy — gotowy wynik typowania schronów</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<html lang="pl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Analiza terenu · LiDAR · potencjalne obiekty podziemne</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-html,body,#map{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif}.panel{position:absolute;z-index:1000;left:10px;bottom:10px;width:360px;max-width:calc(100% - 20px);background:#fff;border-radius:12px;box-shadow:0 4px 20px #0005;padding:12px;font-size:13px;line-height:1.35}.panel h3{margin:0 0 6px;font-size:16px}.btn{display:inline-block;margin:4px 4px 0 0;padding:7px 9px;border-radius:8px;background:#111;color:#fff;text-decoration:none;cursor:pointer}.legend{position:absolute;z-index:1000;right:10px;bottom:28px;background:#fff;border-radius:10px;box-shadow:0 3px 14px #0004;padding:10px;font-size:12px}.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px}.popup h3{margin:0 0 5px}.score{font-weight:700;font-size:15px}.small{color:#555;font-size:12px}.warn{color:#8a3700;font-weight:700}.leaflet-popup-content{min-width:280px}.rank{font-weight:700}
-</style></head><body><div id="map"></div>
-<div class="panel"><h3>Gotowy wynik typowania — Bojszowy / Pszczynka</h3>
-<b>Cel:</b> wskazanie miejsc do sprawdzenia, bez konieczności samodzielnej analizy.<br>
-<b>Metoda:</b> scoring wielokryterialny: anomalia NMT, geometria antropogeniczna, relacja do przeprawy, linia ognia, maskowanie, układ parowy po obu brzegach i zgodność historyczna.<br>
-<span class="warn">Zasada terenowa:</span> zdjęcia/GPS/oględziny; bez kopania i bez wejścia na cudzy teren bez zgody.<br>
-<a class="btn" onclick="downloadGPX()">Pobierz GPX</a><a class="btn" onclick="downloadKML()">Pobierz KML</a><a class="btn" onclick="downloadCSV()">CSV</a></div>
-<div class="legend"><b>Priorytet</b><br><span class="dot" style="background:#8b0000"></span>A — sprawdź najpierw<br><span class="dot" style="background:#ff7a00"></span>B — sprawdź w drugiej kolejności<br><span class="dot" style="background:#4374b3"></span>C — pomocnicze / kontekst</div>
+  :root{
+    --ink:#12140f;
+    --paper:#e8e4d8;
+    --moss:#3d5a3a;
+    --moss-bright:#6b8f52;
+    --clay:#b5533a;
+    --amber:#d99a2b;
+    --line:rgba(18,20,15,.14);
+    --panel:#f3f0e6;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+    color:var(--ink);
+    background:var(--paper);
+    -webkit-font-smoothing:antialiased;
+  }
+  #map{position:absolute;inset:0;z-index:1;background:#1a1c16}
+
+/* — panel — */
+.panel{
+position:absolute;z-index:1000;top:14px;left:14px;
+width:min(360px,calc(100vw - 28px));
+max-height:calc(100vh - 28px);
+display:flex;flex-direction:column;
+background:var(–panel);
+border:1px solid var(–line);
+border-radius:2px;
+box-shadow:0 18px 40px -18px rgba(18,20,15,.5);
+overflow:hidden;
+}
+.panel__head{
+padding:16px 18px 14px;
+border-bottom:1px solid var(–line);
+background:
+linear-gradient(180deg, rgba(61,90,58,.10), transparent);
+}
+.eyebrow{
+font-size:10px;letter-spacing:.28em;text-transform:uppercase;
+color:var(–moss);margin:0 0 8px;font-weight:600;
+}
+h1{
+font-family:Georgia,“Times New Roman”,serif;
+font-size:21px;line-height:1.12;margin:0;font-weight:600;
+letter-spacing:-.01em;
+}
+h1 em{font-style:italic;color:var(–clay)}
+.sub{margin:8px 0 0;font-size:11.5px;line-height:1.5;color:#4a4d40}
+
+.panel__body{overflow-y:auto;padding:4px 0 8px}
+
+details{border-bottom:1px solid var(–line)}
+summary{
+list-style:none;cursor:pointer;
+padding:12px 18px;
+display:flex;align-items:center;gap:10px;
+font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+font-weight:600;color:var(–ink);
+user-select:none;
+}
+summary::-webkit-details-marker{display:none}
+summary .tick{
+font-family:Georgia,serif;font-size:13px;color:var(–moss);
+transition:transform .2s ease;
+}
+details[open] summary .tick{transform:rotate(90deg)}
+.det-body{padding:0 18px 16px;font-size:12px;line-height:1.62;color:#3c3f34}
+.det-body p{margin:0 0 10px}
+.det-body ul{margin:0 0 10px;padding-left:16px}
+.det-body li{margin:0 0 6px}
+.det-body b{color:var(–ink)}
+
+/* layer toggles */
+.layers{padding:6px 18px 14px}
+.layer{
+display:flex;align-items:center;gap:11px;
+padding:9px 0;border-bottom:1px dotted var(–line);
+}
+.layer:last-child{border-bottom:none}
+.swatch{width:26px;height:26px;border-radius:2px;flex:0 0 auto;border:1px solid var(–line)}
+.sw-relief{background:linear-gradient(135deg,#2b2b2b,#e0e0e0)}
+.sw-hyps{background:linear-gradient(135deg,#1a4a2e,#e8d84a 55%,#a8451f)}
+.sw-ortho{background:linear-gradient(135deg,#3a5a2a,#6b7a4a)}
+.sw-slope{background:linear-gradient(135deg,#fff,#000)}
+.layer .lab{flex:1;min-width:0}
+.layer .lab b{display:block;font-size:12px;letter-spacing:.02em}
+.layer .lab span{display:block;font-size:10px;color:#6a6d5e;margin-top:1px}
+.sw-toggle{
+position:relative;width:38px;height:20px;flex:0 0 auto;
+border:1px solid var(–line);border-radius:20px;background:#d9d5c7;
+cursor:pointer;transition:background .18s ease;
+}
+.sw-toggle::after{
+content:””;position:absolute;top:1px;left:1px;width:16px;height:16px;
+background:var(–paper);border-radius:50%;
+box-shadow:0 1px 2px rgba(0,0,0,.3);
+transition:transform .18s ease;
+}
+.sw-toggle.on{background:var(–moss)}
+.sw-toggle.on::after{transform:translateX(18px)}
+.opacity{padding:2px 0 0}
+.opacity input{width:100%;accent-color:var(–moss)}
+.opacity label{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#8a8d7e}
+
+/* legend for typology */
+.key{display:flex;gap:8px;align-items:flex-start;margin:0 0 10px}
+.key .dot{width:14px;height:14px;border-radius:50%;flex:0 0 auto;margin-top:2px;border:2px solid #fff;box-shadow:0 0 0 1px var(–line)}
+.key p{margin:0;font-size:11px;line-height:1.45}
+
+.foot{padding:12px 18px 16px;font-size:10px;line-height:1.5;color:#7a7d6e;border-top:1px solid var(–line)}
+.foot code{background:#e0dccf;padding:1px 4px;border-radius:2px;font-size:9.5px}
+
+/* popup */
+.leaflet-popup-content-wrapper{border-radius:2px;font-family:inherit}
+.leaflet-popup-content{margin:12px 14px;font-size:12px;line-height:1.5}
+.pin-title{font-family:Georgia,serif;font-size:14px;font-weight:600;margin:0 0 6px}
+.pin-tag{display:inline-block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+padding:2px 7px;border-radius:2px;margin-bottom:7px;color:#fff}
+.pin-conf{font-size:10px;color:#777;margin-top:8px;letter-spacing:.06em}
+
+.attribution-note{position:absolute;z-index:1000;bottom:6px;right:8px;
+font-size:9px;color:#cfd0c4;background:rgba(18,20,15,.55);
+padding:3px 7px;border-radius:2px;letter-spacing:.04em}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div id="map"></div>
+<div class="attribution-note">relief/hipsometria: WMS GUGiK Geoportal · ortofoto: Esri</div>
+
+<div class="panel">
+  <div class="panel__head">
+    <p class="eyebrow">Analiza rzeźby terenu · ALS/LiDAR</p>
+    <h1>Rozpoznanie <em>obiektów podziemnych</em><br>Kolonia Wola</h1>
+    <p class="sub">Warstwy cieniowanego reliefu i hipsometrii z lotniczego skaningu laserowego (Geoportal GUGiK) na tle ortofotomapy. Przełączaj warstwy i szukaj geometrycznych anomalii, których nie widać na zdjęciu lotniczym.</p>
+  </div>
+
+  <div class="panel__body">
+
+```
+<!-- WARSTWY -->
+<div class="layers">
+  <div class="layer">
+    <div class="swatch sw-relief"></div>
+    <div class="lab"><b>Cieniowany relief (NMT)</b><span>ShadedRelief · GRID1 · 1 m</span></div>
+    <div class="sw-toggle on" data-layer="relief"></div>
+  </div>
+  <div class="opacity"><label>krycie reliefu</label>
+    <input type="range" min="0" max="100" value="80" data-op="relief"></div>
+
+  <div class="layer">
+    <div class="swatch sw-hyps"></div>
+    <div class="lab"><b>Hipsometria (barwy wys.)</b><span>ISOK · odcienie wysokości</span></div>
+    <div class="sw-toggle" data-layer="hyps"></div>
+  </div>
+  <div class="opacity"><label>krycie hipsometrii</label>
+    <input type="range" min="0" max="100" value="55" data-op="hyps"></div>
+
+  <div class="layer">
+    <div class="swatch sw-ortho"></div>
+    <div class="lab"><b>Ortofotomapa (podkład)</b><span>satelita / zdjęcie lotnicze</span></div>
+    <div class="sw-toggle on" data-layer="ortho"></div>
+  </div>
+</div>
+
+<!-- CO SZUKAMY -->
+<details open>
+  <summary><span class="tick">›</span> Jak czytać teren</summary>
+  <div class="det-body">
+    <p>Bunkry i schrony wchodzą w rzeźbę jako <b>regularna geometria</b>, której natura nie tworzy. Na cieniowanym reliefie szukaj:</p>
+    <ul>
+      <li><b>Prostokątów i linii prostych</b> — nasypy, stropy, ściany oporowe. Przyroda nie robi kątów prostych.</li>
+      <li><b>Regularnych zagłębień</b> — zapadnięte stropy, wejścia, szyby wentylacyjne (ciemne, ostro obrysowane doły).</li>
+      <li><b>Nasypów maskujących</b> — kopce o zbyt równych bokach nad komorami.</li>
+      <li><b>Dróg dojazdowych</b> — proste wcięcia/nasypy urywające się „w nigdzie” w lesie prowadzą do wejść.</li>
+      <li><b>Wałów ziemnych i fos</b> — obwałowania wokół obiektu.</li>
+      <li><b>Powtarzalności</b> — obiekty wojskowe budowano seryjnie; jeden wzór powtórzony w rzędzie to silny sygnał.</li>
+    </ul>
+    <p>Porównaj warstwy: co jest <b>niewidoczne na ortofoto</b> (bo pod koronami drzew), a <b>wyraźne na reliefie</b> — to najlepsi kandydaci.</p>
+  </div>
+</details>
+
+<!-- METODA -->
+<details>
+  <summary><span class="tick">›</span> Metoda (archeologia)</summary>
+  <div class="det-body">
+    <p>Standardowy warsztat detekcji na danych ALS:</p>
+    <ul>
+      <li><b>Bare-earth / NMT</b> — model po usunięciu roślinności; odsłania grunt pod lasem.</li>
+      <li><b>Hillshade</b> — cieniowanie z kierunkowym światłem uwypukla mikrorzeźbę. Oglądaj przy różnym azymucie słońca (obróć mapę myślowo), bo światło z jednego kierunku gubi obiekty równoległe do promieni.</li>
+      <li><b>Hipsometria / spadki</b> — barwy wysokości i mapa spadków pokazują skarpy i krawędzie, które w cieniu giną.</li>
+      <li><b>Kontekst przestrzenny</b> — nie pojedynczy dołek, lecz układ: obiekt + droga + wał + drugi obiekt.</li>
+    </ul>
+    <p>Zasada: <b>anomalia to hipoteza, nie dowód.</b> Punkt z mapy = miejsce do weryfikacji w terenie, nie potwierdzony bunkier.</p>
+  </div>
+</details>
+
+<!-- LEGENDA PUNKTOW -->
+<details open>
+  <summary><span class="tick">›</span> Typy punktów</summary>
+  <div class="det-body">
+    <div class="key"><span class="dot" style="background:#b5533a"></span>
+      <p><b>Potwierdzony</b> — znaleziony przez Ciebie fragment obiektu.</p></div>
+    <div class="key"><span class="dot" style="background:#d99a2b"></span>
+      <p><b>Wysoki priorytet</b> — silna geometryczna anomalia na reliefie.</p></div>
+    <div class="key"><span class="dot" style="background:#6b8f52"></span>
+      <p><b>Do sprawdzenia</b> — słabszy lub niejednoznaczny sygnał.</p></div>
+    <div class="key"><span class="dot" style="background:#4a6fa5"></span>
+      <p><b>Kontekst</b> — droga dojazdowa, wał, oś układu.</p></div>
+    <p style="margin-top:4px">Obwiedziony obszar = Twój teren zainteresowania z pierwszego zdjęcia.</p>
+  </div>
+</details>
+```
+
+  </div>
+
+  <div class="foot">
+    Punkty wczytywane z <code>points.geojson</code> — edytuj ten plik, żeby dodać/przesunąć obiekty po obejrzeniu reliefu. Współrzędne startowe mapy ustaw w <code>config.js</code>.
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="config.js"></script>
+
 <script>
-const center=[50.0349456,19.1132739];
-const pts=[
-{id:'A1',rank:1,prio:'A',score:93,lat:50.0346042,lon:19.1121551,name:'Południowy brzeg — ostra linia skarpy',r:20,why:'Najmocniejszy kandydat. Punkt leży na sztucznie wyglądającej krawędzi tarasu przy przeprawie. Forma jest liniowa, ostra i równoległa do brzegu, co pasuje do zamaskowanego stanowiska lub schronu wkopanego w stok.',checks:'Szukaj cegły/betonu w skarpie, regularnego narożnika, zasypanego wejścia, nienaturalnego pagórka oraz innej roślinności na małej powierzchni.'},
-{id:'A2',rank:2,prio:'A',score:90,lat:50.0343886,lon:19.1146025,name:'Owalny pagórek przy południowym brzegu',r:20,why:'Zwarta wypukłość na brzegu tarasu zalewowego. Lokalizacja daje logiczne pole obserwacji i ostrzału w stronę przeprawy. Kształt jest zbyt izolowany jak na zwykłą mikroformę rzeczną.',checks:'Obejdź dookoła. Szukaj pierścieniowego nasypu, zapadliska na środku, cegły w norach/korzeniach, fragmentów żelbetu lub starszego gruzu.'},
-{id:'A3',rank:3,prio:'A',score:87,lat:50.0353229,lon:19.1158612,name:'Północny brzeg naprzeciw A2',r:18,why:'Punkt tworzy parę taktyczną z A2 po drugiej stronie rzeki. Taki układ często występuje przy obronie przepraw: jeden obiekt kontroluje dojście, drugi zamyka oś przejścia.',checks:'Sprawdź podłużny garb przy linii drzew oraz wszelkie sztuczne krawędzie skierowane w stronę południowego brzegu.'},
-{id:'A4',rank:4,prio:'A',score:84,lat:50.0338227,lon:19.1151619,name:'Prostokątny ślad z dojściem/groblą',r:16,why:'Najbardziej geometryczny ślad w zestawie. Prostokątna forma plus krótki liniowy dojazd to cechy, które w analizie LiDAR traktuje się jako silnie antropogeniczne.',checks:'Szukaj prostych narożników, fragmentów muru ceglanego, zasypanego otworu i różnicy wysokości kilku–kilkudziesięciu cm.'},
-{id:'A5',rank:5,prio:'A',score:80,lat:50.0349007,lon:19.1130641,name:'Bezpośrednio przy starym moście / przyczółku',r:14,why:'To punkt kontrolny. Nawet jeśli właściwy schron jest przesunięty, przy przeprawie powinny być ślady robót ziemnych, dojazdów, osłon lub zniszczonej infrastruktury.',checks:'Sprawdź przyczółki, narzut kamienny, skarpy, stare drogi dojazdowe i miejsca z nienaturalnym gruzem.'},
-{id:'B1',rank:6,prio:'B',score:74,lat:50.0346042,lon:19.1167003,name:'Wschodni brzeg pod linią drzew',r:14,why:'Kontynuacja tej samej osi terenowej co A2/A3. Punkt mniej czytelny przez roślinność, ale logiczny jako dalszy element linii obrony.',checks:'Sprawdź linię drzew od strony wody. Szukaj niskich garbów, dziur, cegły i nagłej zmiany mikroreliefu.'},
-{id:'B2',rank:7,prio:'B',score:71,lat:50.0354397,lon:19.1106866,name:'Trójkątny nasyp przy północnej drodze',r:14,why:'Forma ziemna przy skrzyżowaniu dawnych dojść. Może być efektem drogowym, ale w kontekście obrony przeprawy mogła pełnić funkcję stanowiska osłonowego.',checks:'Zweryfikuj, czy nasyp ma regularny obrys, gruz w rdzeniu i czy ma widok w stronę mostu.'},
-{id:'B3',rank:8,prio:'B',score:69,lat:50.0341192,lon:19.1096377,name:'Łukowaty wał południowo-zachodni',r:14,why:'Łuk może być naturalnym starorzeczem, ale fragmenty o ostrzejszych narożnikach wyglądają jak wtórnie wykorzystany wał lub osłona ziemna.',checks:'Nie sprawdzaj całego łuku. Skup się na punktach załamania, końcach wału i miejscach gdzie wał styka się z dojściem.'},
-{id:'B4',rank:9,prio:'B',score:66,lat:50.0357800,lon:19.1139600,name:'Północna krawędź pola obserwacji',r:14,why:'Punkt wyznaczony z modelu widoczności: daje kontrolę nad doliną i dojściem do przeprawy. Brak bardzo silnej anomalii, ale pozycja taktyczna jest dobra.',checks:'Sprawdź, czy jest niewielkie wypłaszczenie lub garb maskowany trawą/krzakami.'},
-{id:'B5',rank:10,prio:'B',score:63,lat:50.0336000,lon:19.1129500,name:'Południowe zaplecze przeprawy',r:12,why:'Punkt wskazany jako możliwe zaplecze/stanowisko cofnięte. Nie musi być schronem głównym, ale może dać ślady okopu, rowu łącznikowego lub drogi technicznej.',checks:'Szukaj linii rowu, drobnych prostych krawędzi i układu prowadzącego do A1/A4.'},
-{id:'C1',rank:11,prio:'C',score:55,lat:50.0329873,lon:19.1141130,name:'Długi liniowy nasyp na południu',r:12,why:'Najpewniej infrastruktura lub dawny dojazd, ale może tłumaczyć logistykę budowy/obsługi schronów. Punkt pomocniczy, nie główny kandydat.',checks:'Sprawdź tylko przy okazji: nawierzchnia, cegła, beton, relacja do punktów A.'},
-{id:'C2',rank:12,prio:'C',score:52,lat:50.0350600,lon:19.1174200,name:'Wschodnia kontynuacja linii brzegu',r:12,why:'Kandydat wynikający z ciągłości linii terenowej. Brak silnego sygnału, ale może wskazywać kolejne stanowisko w szeregu.',checks:'Krótki rekonesans wzdłuż krawędzi brzegu, tylko jeśli A2/A3 potwierdzą się w terenie.'},
-{id:'C3',rank:13,prio:'C',score:49,lat:50.0360500,lon:19.1116500,name:'Północno-zachodni węzeł dojść',r:12,why:'Miejsce logiczne komunikacyjnie, ale anomalia terenowa jest słabsza. Może wskazywać ślad drogi, nie schron.',checks:'Szukaj śladów starej drogi wojskowej, nasypu lub rowu prowadzącego do linii rzeki.'},
-{id:'C4',rank:14,prio:'C',score:45,lat:50.0332500,lon:19.1162000,name:'Południowo-wschodnia mikroforma',r:10,why:'Słaby, ale geometryczny sygnał na skraju obszaru analizy. Zachowany jako punkt rezerwowy.',checks:'Sprawdź tylko po punktach A i B.'}
-];
-const colors={A:'#8b0000',B:'#ff7a00',C:'#4374b3'};
-const map=L.map('map',{center:center,zoom:17,preferCanvas:true});
-const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'OSM'});
-const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri/Maxar'}).addTo(map);
-const esriHill=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',{opacity:.65,maxZoom:18,attribution:'Esri Hillshade'});
-const nmt=L.tileLayer.wms('https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/ShadedRelief',{layers:'Raster',format:'image/png',transparent:true,opacity:.72,version:'1.1.1',attribution:'GUGiK NMT'}).addTo(map);
-const hipso=L.tileLayer.wms('https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/Hypsometry',{layers:'ISOK_HipsoDyn',format:'image/png',transparent:true,opacity:.45,version:'1.1.1',attribution:'GUGiK hipsometria'});
-const gA=L.layerGroup(),gB=L.layerGroup(),gC=L.layerGroup();
-function popup(p){return `<div class="popup"><h3>${p.id} — ${p.name}</h3><div class="score">Priorytet ${p.prio}, wynik ${p.score}/100, ranga #${p.rank}</div><div class="small">WGS84: ${p.lat.toFixed(7)}, ${p.lon.toFixed(7)} | promień kontroli: ${p.r} m</div><hr><b>Dlaczego został wyznaczony:</b><br>${p.why}<br><br><b>Co sprawdzić w terenie:</b><br>${p.checks}<br><br><b>Interpretacja:</b> kandydat po analizie form terenowych i logiki obrony przeprawy, nie potwierdzenie zabytku.</div>`}
-pts.forEach(p=>{let grp=p.prio==='A'?gA:p.prio==='B'?gB:gC;L.circle([p.lat,p.lon],{radius:p.r,color:colors[p.prio],fillColor:colors[p.prio],fillOpacity:.18,weight:2}).addTo(grp);L.circleMarker([p.lat,p.lon],{radius:p.prio==='A'?9:7,color:'#fff',weight:2,fillColor:colors[p.prio],fillOpacity:1}).bindPopup(popup(p)).bindTooltip(`${p.id} #${p.rank} — ${p.score}/100`).addTo(grp);});
-gA.addTo(map);gB.addTo(map);gC.addTo(map);
-L.circle(center,{radius:450,color:'#111',dashArray:'6,6',fill:false,weight:1}).addTo(map).bindTooltip('Obszar głównej analizy 450 m');
-L.polyline(pts.filter(p=>p.prio==='A').map(p=>[p.lat,p.lon]),{color:'#8b0000',weight:3,opacity:.75}).addTo(map).bindTooltip('Oś kontroli przeprawy — punkty A');
-L.control.layers({'Satelita Esri':sat,'OSM':osm},{'Geoportal NMT 1 m — cieniowanie':nmt,'Geoportal hipsometria':hipso,'Szybki Esri Hillshade':esriHill,'Priorytet A':gA,'Priorytet B':gB,'Kontekst C':gC},{collapsed:false}).addTo(map);
-L.control.scale().addTo(map);
-function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:type}));a.download=name;a.click();}
-function downloadCSV(){dl('bojszowy_typowanie_schronow.csv','id,rank,priority,score,lat,lon,name\n'+pts.map(p=>`${p.id},${p.rank},${p.prio},${p.score},${p.lat},${p.lon},"${p.name}"`).join('\n'),'text/csv')}
-function downloadGPX(){dl('bojszowy_typowanie_schronow.gpx','<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="ChatGPT-GIS">'+pts.map(p=>`<wpt lat="${p.lat}" lon="${p.lon}"><name>${p.id} ${p.score}/100</name><desc>${p.name}. ${p.why}</desc></wpt>`).join('')+'</gpx>','application/gpx+xml')}
-function downloadKML(){dl('bojszowy_typowanie_schronow.kml','<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document>'+pts.map(p=>`<Placemark><name>${p.id} ${p.score}/100</name><description><![CDATA[${p.name}<br>${p.why}<br>${p.checks}]]></description><Point><coordinates>${p.lon},${p.lat},0</coordinates></Point></Placemark>`).join('')+'</Document></kml>','application/vnd.google-earth.kml+xml')}
-</script></body></html>
+(function(){
+  const C = window.APP_CONFIG;
+
+  const map = L.map('map',{zoomControl:true,attributionControl:false})
+    .setView(C.center, C.zoom);
+
+  // --- PODKLAD: ortofoto ---
+  const ortho = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {maxZoom:20, maxNativeZoom:18}
+  ).addTo(map);
+
+  // --- LiDAR: cieniowany relief NMT (GUGiK WMS) ---
+  const relief = L.tileLayer.wms(
+    'https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WMS/ShadedRelief',
+    {layers:'Raster', format:'image/png', transparent:true,
+     version:'1.3.0', crs:L.CRS.EPSG3857, maxZoom:20, opacity:0.80}
+  ).addTo(map);
+
+  // --- LiDAR: hipsometria (barwy wysokosci) ---
+  const hyps = L.tileLayer.wms(
+    'https://mapy.geoportal.gov.pl/wss/service/PZGIK/ISOK/WMS/Hillshade',
+    {layers:'Raster', format:'image/png', transparent:true,
+     version:'1.3.0', crs:L.CRS.EPSG3857, maxZoom:20, opacity:0.55}
+  );
+
+  const registry = {ortho, relief, hyps};
+
+  // toggles
+  document.querySelectorAll('.sw-toggle').forEach(t=>{
+    t.addEventListener('click',()=>{
+      const key=t.dataset.layer, lyr=registry[key];
+      if(map.hasLayer(lyr)){map.removeLayer(lyr);t.classList.remove('on');}
+      else{lyr.addTo(lyr===ortho?map:map);t.classList.add('on');
+           if(key!=='ortho') lyr.bringToFront();}
+    });
+  });
+  // opacity sliders
+  document.querySelectorAll('[data-op]').forEach(s=>{
+    s.addEventListener('input',()=>{registry[s.dataset.op].setOpacity(s.value/100);});
+  });
+
+  // --- kolory typow ---
+  const COLORS = {
+    confirmed:'#b5533a', high:'#d99a2b', check:'#6b8f52', context:'#4a6fa5'
+  };
+  const TAGLABEL = {
+    confirmed:'Potwierdzony', high:'Wysoki priorytet',
+    check:'Do sprawdzenia', context:'Kontekst'
+  };
+
+  function markerFor(feature, latlng){
+    const t = feature.properties.type || 'check';
+    const col = COLORS[t] || COLORS.check;
+    return L.circleMarker(latlng,{
+      radius:8, color:'#fff', weight:2, fillColor:col, fillOpacity:0.95
+    });
+  }
+  function popupFor(feature, layer){
+    const p = feature.properties||{};
+    const t = p.type||'check';
+    const col = COLORS[t]||COLORS.check;
+    let html = '';
+    if(p.tag_hidden!==true){
+      html += '<span class="pin-tag" style="background:'+col+'">'+(TAGLABEL[t]||'')+'</span>';
+    }
+    html += '<div class="pin-title">'+(p.name||'Punkt')+'</div>';
+    if(p.why) html += '<div>'+p.why+'</div>';
+    if(p.confidence) html += '<div class="pin-conf">Pewność: '+p.confidence+'</div>';
+    layer.bindPopup(html);
+  }
+
+  // --- wczytaj punkty ---
+  fetch('points.geojson')
+    .then(r=>r.json())
+    .then(gj=>{
+      const layer = L.geoJSON(gj,{
+        pointToLayer:markerFor,
+        onEachFeature:popupFor,
+        style:function(f){
+          // dla obszaru (Polygon) i linii
+          const t=f.properties&&f.properties.type;
+          if(t==='area') return {color:'#b5533a',weight:3,fillOpacity:0.05,dashArray:'6 5'};
+          if(t==='context') return {color:'#4a6fa5',weight:3,dashArray:'2 6'};
+          return {color:'#d99a2b',weight:2};
+        }
+      }).addTo(map);
+      try{ map.fitBounds(layer.getBounds().pad(0.25)); }catch(e){}
+    })
+    .catch(e=>console.warn('points.geojson nie wczytany:',e));
+})();
+</script>
+
+</body>
+</html>
