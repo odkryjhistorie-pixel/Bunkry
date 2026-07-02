@@ -1,0 +1,88 @@
+{
+  "type": "FeatureCollection",
+  "note": "EDYTUJ TEN PLIK. Kazdy punkt to jeden Feature. Skopiuj wspolrzedne z Google Maps (klik prawym -> lat, lng) i wklej jako [lng, lat] (UWAGA: w GeoJSON kolejnosc to DLUGOSC, potem SZEROKOSC). type: 'confirmed' | 'high' | 'check' | 'context' | 'area'.",
+  "features": [
+
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "confirmed",
+        "name": "Znaleziony fragment bunkra",
+        "why": "Odkryty przez Ciebie fragment murowanego obiektu podziemnego. Punkt odniesienia dla calej analizy — wokol niego szukaj powtarzalnych obiektow tego samego typu.",
+        "confidence": "potwierdzone w terenie"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [21.8480, 50.6600]
+      }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "high",
+        "name": "Anomalia A — przyklad",
+        "why": "PRZYKLAD. Zastap wlasnym punktem po obejrzeniu reliefu. Opisz tu, co widzisz: np. 'regularny prostokatny nasyp ~8x12 m, niewidoczny na ortofoto, wyrazny na cieniowanym reliefie'.",
+        "confidence": "do weryfikacji"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [21.8520, 50.6615]
+      }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "check",
+        "name": "Anomalia B — przyklad",
+        "why": "PRZYKLAD. Slabszy sygnal: okragle zaglebienie mogace byc zapadnietym stropem lub szybem. Wymaga sprawdzenia na miejscu.",
+        "confidence": "niska"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [21.8455, 50.6625]
+      }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "context",
+        "name": "Domniemana droga dojazdowa — przyklad",
+        "why": "PRZYKLAD linii kontekstowej: proste wciecie w terenie prowadzace w las i urywajace sie — mozliwy dojazd do wejscia. Drogi dojazdowe czesto zdradzaja polozenie ukrytych obiektow.",
+        "tag_hidden": false
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [21.8500, 50.6590],
+          [21.8515, 50.6605],
+          [21.8525, 50.6612]
+        ]
+      }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "area",
+        "name": "Obszar zainteresowania",
+        "why": "Teren obwiedziony na Twoim pierwszym zrzucie ekranu. PRZYBLIZONY — popraw wierzcholki tak, by pokryly Twoj rzeczywisty obrys.",
+        "tag_hidden": true
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [21.8380, 50.6640],
+          [21.8620, 50.6660],
+          [21.8700, 50.6605],
+          [21.8560, 50.6560],
+          [21.8420, 50.6575],
+          [21.8380, 50.6640]
+        ]]
+      }
+    }
+
+  ]
+}
