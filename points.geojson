@@ -1,88 +1,164 @@
 {
   "type": "FeatureCollection",
-  "note": "EDYTUJ TEN PLIK. Kazdy punkt to jeden Feature. Skopiuj wspolrzedne z Google Maps (klik prawym -> lat, lng) i wklej jako [lng, lat] (UWAGA: w GeoJSON kolejnosc to DLUGOSC, potem SZEROKOSC). type: 'confirmed' | 'high' | 'check' | 'context' | 'area'.",
+  "note": "Wspolrzedne z pomiaru terenowego (Google Maps, DMS->dec). type: confirmed|high|check|context|area. Kolejnosc w geometry: [lng,lat].",
   "features": [
-
     {
       "type": "Feature",
       "properties": {
         "type": "confirmed",
-        "name": "Znaleziony fragment bunkra",
-        "why": "Odkryty przez Ciebie fragment murowanego obiektu podziemnego. Punkt odniesienia dla calej analizy — wokol niego szukaj powtarzalnych obiektow tego samego typu.",
-        "confidence": "potwierdzone w terenie"
+        "name": "Punkt 1 — pomiar zachodni",
+        "why": "Zmierzony punkt terenowy (50°02'04.6\"N 19°06'36.9\"E). Zachodni kraniec wykrytej linii obiektow. Od niego liczony jest rytm rozstawienia.",
+        "confidence": "pomiar w terenie"
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [21.8480, 50.6600]
+        "coordinates": [
+          19.11025,
+          50.034611
+        ]
       }
     },
-
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "confirmed",
+        "name": "Punkt 2 — pomiar srodkowy",
+        "why": "Zmierzony punkt terenowy (50°02'07.3\"N 19°06'53.4\"E). Srodkowy, odchylony od prostej P1-P3 tylko o ~49 m — mimo to rytm odstepow zachowany (337 m / 353 m).",
+        "confidence": "pomiar w terenie"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.114833,
+          50.035361
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "confirmed",
+        "name": "Punkt 3 — pomiar wschodni",
+        "why": "Zmierzony punkt terenowy (50°02'06.9\"N 19°07'11.2\"E). Wschodni kraniec znanej linii. Rownomierne odstepy sugeruja rozstawienie inzynieryjne, nie przypadkowe.",
+        "confidence": "pomiar w terenie"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.119778,
+          50.03525
+        ]
+      }
+    },
     {
       "type": "Feature",
       "properties": {
         "type": "high",
-        "name": "Anomalia A — przyklad",
-        "why": "PRZYKLAD. Zastap wlasnym punktem po obejrzeniu reliefu. Opisz tu, co widzisz: np. 'regularny prostokatny nasyp ~8x12 m, niewidoczny na ortofoto, wyrazny na cieniowanym reliefie'.",
-        "confidence": "do weryfikacji"
+        "name": "Prognoza A — kontynuacja na zachod",
+        "why": "WYTYPOWANE przez ekstrapolacje rytmu. Jesli linia obiektow biegnie dalej na zachod z tym samym krokiem (~345 m), tu powinien lezec kolejny obiekt. Sprawdz relief LiDAR w tym miejscu: szukaj prostokatnego nasypu lub regularnego zaglebienia.",
+        "confidence": "hipoteza geometryczna — do weryfikacji"
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [21.8520, 50.6615]
+        "coordinates": [
+          19.105486,
+          50.034291
+        ]
       }
     },
-
+    {
+      "type": "Feature",
+      "properties": {
+        "type": "high",
+        "name": "Prognoza B — kontynuacja na wschod",
+        "why": "WYTYPOWANE przez ekstrapolacje rytmu. Symetryczny kandydat po wschodniej stronie linii. Ten sam krok ~345 m od Punktu 3. Priorytet do obejrzenia na cieniowanym reliefie.",
+        "confidence": "hipoteza geometryczna — do weryfikacji"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.124542,
+          50.035569
+        ]
+      }
+    },
     {
       "type": "Feature",
       "properties": {
         "type": "check",
-        "name": "Anomalia B — przyklad",
-        "why": "PRZYKLAD. Slabszy sygnal: okragle zaglebienie mogace byc zapadnietym stropem lub szybem. Wymaga sprawdzenia na miejscu.",
+        "name": "Kontrola — zageszczenie P1-P2",
+        "why": "Jesli obiekty stoja gesciej niz co ~345 m, tu (w polowie P1-P2) moze byc obiekt posredni. Slabsza hipoteza — sprawdz przy okazji.",
         "confidence": "niska"
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [21.8455, 50.6625]
+        "coordinates": [
+          19.112541,
+          50.034986
+        ]
       }
     },
-
     {
       "type": "Feature",
       "properties": {
         "type": "context",
-        "name": "Domniemana droga dojazdowa — przyklad",
-        "why": "PRZYKLAD linii kontekstowej: proste wciecie w terenie prowadzace w las i urywajace sie — mozliwy dojazd do wejscia. Drogi dojazdowe czesto zdradzaja polozenie ukrytych obiektow.",
+        "name": "Os linii obiektow (P1–P3)",
+        "why": "Wyznaczona os rozstawienia, azymut ~84° (W-E, wzdluz doliny Pszczynki). Wzdluz tej linii prowadz oglad reliefu — obiekty seryjne trzymaja sie jednej osi, czesto rownolegle do rzeki, drogi lub nasypu.",
         "tag_hidden": false
       },
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [21.8500, 50.6590],
-          [21.8515, 50.6605],
-          [21.8525, 50.6612]
+          [
+            19.11025,
+            50.034611
+          ],
+          [
+            19.114833,
+            50.035361
+          ],
+          [
+            19.119778,
+            50.03525
+          ]
         ]
       }
     },
-
     {
       "type": "Feature",
       "properties": {
         "type": "area",
-        "name": "Obszar zainteresowania",
-        "why": "Teren obwiedziony na Twoim pierwszym zrzucie ekranu. PRZYBLIZONY — popraw wierzcholki tak, by pokryly Twoj rzeczywisty obrys.",
+        "name": "Obszar analizy",
+        "why": "Korytarz obejmujacy linie pomiarow z buforem ~250 m po obu stronach osi i przedluzeniem w obie strony. Tu koncentruj oglad danych LiDAR.",
         "tag_hidden": true
       },
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[
-          [21.8380, 50.6640],
-          [21.8620, 50.6660],
-          [21.8700, 50.6605],
-          [21.8560, 50.6560],
-          [21.8420, 50.6575],
-          [21.8380, 50.6640]
-        ]]
+        "coordinates": [
+          [
+            [
+              19.10464,
+              50.036863
+            ],
+            [
+              19.125388,
+              50.037502
+            ],
+            [
+              19.125388,
+              50.032998
+            ],
+            [
+              19.10464,
+              50.032359
+            ],
+            [
+              19.10464,
+              50.036863
+            ]
+          ]
+        ]
       }
     }
-
   ]
 }

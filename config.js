@@ -1,14 +1,9 @@
 // ── Konfiguracja mapy ────────────────────────────────────────────────
-// Ustaw środek na swój teren. [szerokość, długość] w stopniach (WGS84).
-// Jak zdobyć dokładne współrzędne:
-//   Google Maps → klik prawym na punkt → pierwsza pozycja to lat, lng.
-//   Skopiuj i wklej poniżej. Obecne wartości są PRZYBLIŻONE (Kolonia Wola)
-//   i służą tylko jako punkt startowy — popraw je.
-//
-// Uwaga: gdy points.geojson ma punkty, mapa i tak dopasuje widok do nich
-// automatycznie. Center/zoom to pozycja awaryjna.
+// Środek ustawiony na Twój teren nad Pszczynką (okolice 50°02'N 19°07'E).
+// Jeśli chcesz przesunąć widok startowy, podmień [lat, lng] poniżej.
+// Gdy points.geojson ma punkty, mapa i tak sama dopasuje widok do nich.
 
 window.APP_CONFIG = {
-  center: [50.66, 21.85],   // ← PODMIEŃ na dokładne lat, lng swojego terenu
-  zoom:   15
+  center: [50.03507, 19.11495],   // środek trzech punktów pomiarowych
+  zoom:   16
 };
