@@ -1,14 +1,14 @@
 {
   "type": "FeatureCollection",
-  "note": "Wspolrzedne z pomiaru terenowego (Google Maps, DMS->dec). type: confirmed|high|check|context|area. Kolejnosc w geometry: [lng,lat].",
+  "note": "Stan przejsciowy: 3 punkty pomiarowe wyznaczaja OBSZAR POSZUKIWAN. Wlasciwe punkty-anomalie wygeneruje analiza_lidar.py po pobraniu danych NMT (patrz INSTRUKCJA_DANE.md).",
   "features": [
     {
       "type": "Feature",
       "properties": {
-        "type": "confirmed",
-        "name": "Punkt 1 — pomiar zachodni",
-        "why": "Zmierzony punkt terenowy (50°02'04.6\"N 19°06'36.9\"E). Zachodni kraniec wykrytej linii obiektow. Od niego liczony jest rytm rozstawienia.",
-        "confidence": "pomiar w terenie"
+        "type": "context",
+        "name": "Punkt pomiarowy 1 (zach.)",
+        "why": "Granica obszaru poszukiwan (50°02'04.6\"N 19°06'36.9\"E). Nie jest to wykryty obiekt — to naroznik terenu do analizy.",
+        "tag_hidden": true
       },
       "geometry": {
         "type": "Point",
@@ -21,10 +21,10 @@
     {
       "type": "Feature",
       "properties": {
-        "type": "confirmed",
-        "name": "Punkt 2 — pomiar srodkowy",
-        "why": "Zmierzony punkt terenowy (50°02'07.3\"N 19°06'53.4\"E). Srodkowy, odchylony od prostej P1-P3 tylko o ~49 m — mimo to rytm odstepow zachowany (337 m / 353 m).",
-        "confidence": "pomiar w terenie"
+        "type": "context",
+        "name": "Punkt pomiarowy 2 (srodek)",
+        "why": "Granica obszaru poszukiwan (50°02'07.3\"N 19°06'53.4\"E).",
+        "tag_hidden": true
       },
       "geometry": {
         "type": "Point",
@@ -37,10 +37,10 @@
     {
       "type": "Feature",
       "properties": {
-        "type": "confirmed",
-        "name": "Punkt 3 — pomiar wschodni",
-        "why": "Zmierzony punkt terenowy (50°02'06.9\"N 19°07'11.2\"E). Wschodni kraniec znanej linii. Rownomierne odstepy sugeruja rozstawienie inzynieryjne, nie przypadkowe.",
-        "confidence": "pomiar w terenie"
+        "type": "context",
+        "name": "Punkt pomiarowy 3 (wsch.)",
+        "why": "Granica obszaru poszukiwan (50°02'06.9\"N 19°07'11.2\"E).",
+        "tag_hidden": true
       },
       "geometry": {
         "type": "Point",
@@ -53,83 +53,9 @@
     {
       "type": "Feature",
       "properties": {
-        "type": "high",
-        "name": "Prognoza A — kontynuacja na zachod",
-        "why": "WYTYPOWANE przez ekstrapolacje rytmu. Jesli linia obiektow biegnie dalej na zachod z tym samym krokiem (~345 m), tu powinien lezec kolejny obiekt. Sprawdz relief LiDAR w tym miejscu: szukaj prostokatnego nasypu lub regularnego zaglebienia.",
-        "confidence": "hipoteza geometryczna — do weryfikacji"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          19.105486,
-          50.034291
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "high",
-        "name": "Prognoza B — kontynuacja na wschod",
-        "why": "WYTYPOWANE przez ekstrapolacje rytmu. Symetryczny kandydat po wschodniej stronie linii. Ten sam krok ~345 m od Punktu 3. Priorytet do obejrzenia na cieniowanym reliefie.",
-        "confidence": "hipoteza geometryczna — do weryfikacji"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          19.124542,
-          50.035569
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "check",
-        "name": "Kontrola — zageszczenie P1-P2",
-        "why": "Jesli obiekty stoja gesciej niz co ~345 m, tu (w polowie P1-P2) moze byc obiekt posredni. Slabsza hipoteza — sprawdz przy okazji.",
-        "confidence": "niska"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          19.112541,
-          50.034986
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "type": "context",
-        "name": "Os linii obiektow (P1–P3)",
-        "why": "Wyznaczona os rozstawienia, azymut ~84° (W-E, wzdluz doliny Pszczynki). Wzdluz tej linii prowadz oglad reliefu — obiekty seryjne trzymaja sie jednej osi, czesto rownolegle do rzeki, drogi lub nasypu.",
-        "tag_hidden": false
-      },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            19.11025,
-            50.034611
-          ],
-          [
-            19.114833,
-            50.035361
-          ],
-          [
-            19.119778,
-            50.03525
-          ]
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
         "type": "area",
-        "name": "Obszar analizy",
-        "why": "Korytarz obejmujacy linie pomiarow z buforem ~250 m po obu stronach osi i przedluzeniem w obie strony. Tu koncentruj oglad danych LiDAR.",
+        "name": "Obszar poszukiwan",
+        "why": "Teren wyznaczony Twoimi trzema pomiarami, z buforem ~250 m. Wewnatrz tego korytarza analiza_lidar.py wyszuka geometryczne anomalie i wstawi tu punkty do sprawdzenia.",
         "tag_hidden": true
       },
       "geometry": {
@@ -137,24 +63,24 @@
         "coordinates": [
           [
             [
-              19.10464,
-              50.036863
+              19.106603,
+              50.036953
             ],
             [
-              19.125388,
-              50.037502
+              19.123425,
+              50.037592
             ],
             [
-              19.125388,
-              50.032998
+              19.123425,
+              50.032908
             ],
             [
-              19.10464,
-              50.032359
+              19.106603,
+              50.032269
             ],
             [
-              19.10464,
-              50.036863
+              19.106603,
+              50.036953
             ]
           ]
         ]
